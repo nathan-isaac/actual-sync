@@ -11,7 +11,7 @@ source code over to use [Go](https://go.dev/).
 
 ## Usage
 
-> Planning to make this a standardized binary one the CLI api is stable.
+> Planning to make this a standardized binary once the CLI api is stable.
 
 ### Run Server
 
