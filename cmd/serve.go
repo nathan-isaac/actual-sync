@@ -1,10 +1,14 @@
 package cmd
 
 import (
+	"embed"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cobra"
+	"net/http"
 )
+
+var BuildDirectory embed.FS
 
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
@@ -19,8 +23,9 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		e := echo.New()
 		e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
-			Root:  "node_modules/@actual-app/web/build",
-			HTML5: true,
+			Root:       "node_modules/@actual-app/web/build",
+			HTML5:      true,
+			Filesystem: http.FS(BuildDirectory),
 		}))
 
 		e.Logger.Fatal(e.Start(":1323"))
