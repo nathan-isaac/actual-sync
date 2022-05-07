@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +17,13 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("serve called")
+		e := echo.New()
+		e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+			Root:  "node_modules/@actual-app/web/build",
+			HTML5: true,
+		}))
+
+		e.Logger.Fatal(e.Start(":1323"))
 	},
 }
 
