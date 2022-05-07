@@ -2,10 +2,15 @@ package cmd
 
 import (
 	"embed"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/nathanjisaac/actual-server-go/internal"
 	"github.com/spf13/cobra"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 var BuildDirectory embed.FS
@@ -21,14 +26,47 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		serverFiles, err := filepath.Abs("data/server-files")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		userFiles, err := filepath.Abs("data/user-files")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = os.MkdirAll(serverFiles, os.ModePerm)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = os.MkdirAll(userFiles, os.ModePerm)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		config := internal.Config{
+			Mode:        internal.Development,
+			Port:        1323,
+			Hostname:    "0.0.0.0",
+			ServerFiles: serverFiles,
+			UserFiles:   userFiles,
+		}
+
 		e := echo.New()
 		e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
 			Root:       "node_modules/@actual-app/web/build",
 			HTML5:      true,
 			Filesystem: http.FS(BuildDirectory),
 		}))
+		e.GET("mode", func(c echo.Context) error {
+			return c.String(http.StatusOK, config.ModeString())
+		})
 
-		e.Logger.Fatal(e.Start(":1323"))
+		e.Logger.Fatal(e.Start(fmt.Sprintf("%v:%v", config.Hostname, config.Port)))
 	},
 }
 
