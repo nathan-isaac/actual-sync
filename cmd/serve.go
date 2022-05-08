@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/nathanjisaac/actual-server-go/internal"
+	"github.com/nathanjisaac/actual-server-go/internal/core"
+	"github.com/nathanjisaac/actual-server-go/internal/routes"
 	"github.com/spf13/cobra"
 	"log"
 	"net/http"
@@ -48,8 +49,8 @@ to quickly create a Cobra application.`,
 			log.Fatal(err)
 		}
 
-		config := internal.Config{
-			Mode:        internal.Development,
+		config := core.Config{
+			Mode:        core.Development,
 			Port:        1323,
 			Hostname:    "0.0.0.0",
 			ServerFiles: serverFiles,
@@ -62,9 +63,10 @@ to quickly create a Cobra application.`,
 			HTML5:      true,
 			Filesystem: http.FS(BuildDirectory),
 		}))
-		e.GET("mode", func(c echo.Context) error {
-			return c.String(http.StatusOK, config.ModeString())
-		})
+		handler := routes.RouteHandler{
+			Config: config,
+		}
+		e.GET("mode", handler.GetMode)
 
 		e.Logger.Fatal(e.Start(fmt.Sprintf("%v:%v", config.Hostname, config.Port)))
 	},

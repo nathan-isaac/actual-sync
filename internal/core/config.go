@@ -1,4 +1,4 @@
-package internal
+package core
 
 type Mode int64
 
