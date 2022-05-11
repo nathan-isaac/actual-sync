@@ -3,7 +3,7 @@ package core
 type Token = string
 
 type TokenStore interface {
-	FirstToken() (Token, error)
-	AddToken(token Token) error
-	HasToken(token Token) (bool, error)
+	First() (Token, error)
+	Add(token Token) error
+	Has(token Token) (bool, error)
 }

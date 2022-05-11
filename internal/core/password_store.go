@@ -3,8 +3,8 @@ package core
 type Password = string
 
 type PasswordStore interface {
-	PasswordsCount() (int, error)
-	FirstPassword() (Password, error)
-	AddPassword(password Password) error
-	SetPassword(password Password) error
+	Count() (int, error)
+	First() (Password, error)
+	Add(password Password) error
+	Set(password Password) error
 }

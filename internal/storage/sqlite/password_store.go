@@ -14,7 +14,7 @@ func NewPasswordStore(connection *Connection) *PasswordStore {
 	}
 }
 
-func (a *PasswordStore) PasswordsCount() (int, error) {
+func (a *PasswordStore) Count() (int, error) {
 	row, err := a.connection.First("SELECT count(*) FROM auth")
 
 	if err != nil {
@@ -30,22 +30,17 @@ func (a *PasswordStore) PasswordsCount() (int, error) {
 	return count, nil
 }
 
-func (a *PasswordStore) FirstPassword() (core.Password, error) {
+func (a *PasswordStore) First() (core.Password, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (a *PasswordStore) FirstToken() (core.Token, error) {
+func (a *PasswordStore) Add(password core.Password) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (a *PasswordStore) AddPassword(password core.Password) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (a *PasswordStore) SetPassword(password core.Password) error {
+func (a *PasswordStore) Set(password core.Password) error {
 	//TODO implement me
 	panic("implement me")
 }
