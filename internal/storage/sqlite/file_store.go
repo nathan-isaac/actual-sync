@@ -56,7 +56,7 @@ func (fs *FileStore) Update(file *core.File) error {
 	return nil
 }
 
-func (fs *FileStore) Add(file core.NewFile) error {
+func (fs *FileStore) Add(file *core.NewFile) error {
 	_, _, err := fs.connection.Mutate("INSERT INTO files (id, group_id, sync_version, name, encrypt_meta) VALUES (?, ?, ?, ?, ?)", file.FileId, file.GroupId, file.SyncVersion, file.Name, file.EncryptMeta)
 	if err != nil {
 		return err

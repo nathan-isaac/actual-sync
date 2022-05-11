@@ -2,7 +2,11 @@ package sqlite
 
 import (
 	"database/sql"
-	"log"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	_ "modernc.org/sqlite"
 )
@@ -11,15 +15,31 @@ type Connection struct {
 	db *sql.DB
 }
 
-func NewConnection(filePath string) (*Connection, error) {
-	db, err := sql.Open("sqlite", filePath)
+func NewConnection(dataSource string) (*Connection, error) {
+	_, err := os.Stat(dataSource)
+	dbExists := !errors.Is(err, os.ErrNotExist)
+
+	db, err := sql.Open("sqlite", dataSource)
+
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Run migrations if needed.
+	conn := &Connection{db: db}
 
-	return &Connection{db: db}, nil
+	if !dbExists {
+		sqlFilepath, _ := filepath.Abs("internal/storage/sqlite/migrations/init_account.sql")
+		content, _ := ioutil.ReadFile(sqlFilepath)
+		initSql := string(content)
+
+		_, err := conn.Exec(initSql)
+
+		if err != nil {
+			return conn, err
+		}
+	}
+
+	return conn, nil
 }
 
 func (it *Connection) All(sqlString string, params ...any) (*sql.Rows, error) {
@@ -96,9 +116,9 @@ func (it *Connection) Transaction(fn func(*sql.Tx) error) error {
 	err = fn(tx)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Fatalf("DB transaction FAILURE: unable to rollback: %v", rollbackErr)
+			return fmt.Errorf("DB transaction FAILURE: unable to rollback: %v", rollbackErr)
 		}
-		log.Fatal(err)
+		return err
 	}
 
 	err = tx.Commit()

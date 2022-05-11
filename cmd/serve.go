@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/nathanjisaac/actual-server-go/internal/core"
 	"github.com/nathanjisaac/actual-server-go/internal/routes"
+	"github.com/nathanjisaac/actual-server-go/internal/storage/sqlite"
 	"github.com/spf13/cobra"
 	"log"
 	"net/http"
@@ -63,8 +64,15 @@ to quickly create a Cobra application.`,
 			HTML5:      true,
 			Filesystem: http.FS(BuildDirectory),
 		}))
+		conn, err := sqlite.NewConnection(filepath.Join(config.ServerFiles, "account.sqlite"))
+		if err != nil {
+			e.Logger.Fatal(err)
+		}
 		handler := routes.RouteHandler{
-			Config: config,
+			Config:        config,
+			FileStore:     sqlite.NewFileStore(conn),
+			TokenStore:    sqlite.NewTokenStore(conn),
+			PasswordStore: sqlite.NewPasswordStore(conn),
 		}
 		e.GET("mode", handler.GetMode)
 

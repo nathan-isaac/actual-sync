@@ -5,5 +5,8 @@ import (
 )
 
 type RouteHandler struct {
-	Config core.Config
+	Config        core.Config
+	FileStore     core.FileStore
+	PasswordStore core.PasswordStore
+	TokenStore    core.TokenStore
 }
