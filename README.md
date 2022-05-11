@@ -1,3 +1,5 @@
+[![Go](https://github.com/nathanjisaac/actual-sync/actions/workflows/go.yml/badge.svg)](https://github.com/nathanjisaac/actual-sync/actions/workflows/go.yml)
+
 ## ⚠️⚠️ Work In Progress ⚠️⚠️
 
 The goal for this project is to migrate the [actualbudget/actual-server](https://github.com/actualbudget/actual-server) 
