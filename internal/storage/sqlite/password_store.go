@@ -31,16 +31,35 @@ func (a *PasswordStore) Count() (int, error) {
 }
 
 func (a *PasswordStore) First() (core.Password, error) {
-	//TODO implement me
-	panic("implement me")
+	row, err := a.connection.First("SELECT * FROM auth")
+
+	if err != nil {
+		return "", err
+	}
+
+	var password core.Password
+
+	if err = row.Scan(&password); err != nil {
+		return "", err
+	}
+
+	return password, nil
 }
 
 func (a *PasswordStore) Add(password core.Password) error {
-	//TODO implement me
-	panic("implement me")
+	_, _, err := a.connection.Mutate("INSERT INTO auth (password) VALUES (?)", password)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *PasswordStore) Set(password core.Password) error {
-	//TODO implement me
-	panic("implement me")
+	_, _, err := a.connection.Mutate("UPDATE auth SET password = ?", password)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
