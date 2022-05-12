@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+
 	_ "modernc.org/sqlite"
 )
 
@@ -50,8 +51,6 @@ func (it *Connection) All(sqlString string, params ...any) (*sql.Rows, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	defer rows.Close()
 
 	return rows, nil
 }

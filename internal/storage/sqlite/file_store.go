@@ -1,7 +1,10 @@
 package sqlite
 
 import (
+	"database/sql"
+
 	"github.com/nathanjisaac/actual-server-go/internal/core"
+	"github.com/nathanjisaac/actual-server-go/internal/storage"
 )
 
 type FileStore struct {
@@ -23,6 +26,9 @@ func (fs *FileStore) ForId(id core.FileId, deleted bool) (*core.File, error) {
 	var f core.File
 
 	if err = row.Scan(&f.FileId, &f.GroupId, &f.SyncVersion, &f.EncryptMeta, &f.EncryptKeyId, &f.EncryptSalt, &f.EncryptTest, &f.Deleted, &f.Name); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, storage.ErrorRecordNotFound
+		}
 		return nil, err
 	}
 
@@ -34,6 +40,7 @@ func (fs *FileStore) All() ([]*core.File, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	files := make([]*core.File, 0)
 	for rows.Next() {
@@ -48,9 +55,11 @@ func (fs *FileStore) All() ([]*core.File, error) {
 }
 
 func (fs *FileStore) Update(file *core.File) error {
-	_, _, err := fs.connection.Mutate("UPDATE files SET sync_version = ?, encrypt_meta = ? WHERE id = ?", file.SyncVersion, file.EncryptMeta, file.FileId)
+	rows, _, err := fs.connection.Mutate("UPDATE files SET sync_version = ?, encrypt_meta = ? WHERE id = ?", file.SyncVersion, file.EncryptMeta, file.FileId)
 	if err != nil {
 		return err
+	} else if rows == 0 {
+		return storage.ErrorNoRecordUpdated
 	}
 
 	return nil
@@ -66,45 +75,55 @@ func (fs *FileStore) Add(file *core.NewFile) error {
 }
 
 func (fs *FileStore) ClearGroup(id core.FileId) error {
-	_, _, err := fs.connection.Mutate("UPDATE files SET group_id = NULL WHERE id = ?", id)
+	rows, _, err := fs.connection.Mutate("UPDATE files SET group_id = NULL WHERE id = ?", id)
 	if err != nil {
 		return err
+	} else if rows == 0 {
+		return storage.ErrorNoRecordUpdated
 	}
 
 	return nil
 }
 
 func (fs *FileStore) Delete(id core.FileId) error {
-	_, _, err := fs.connection.Mutate("UPDATE files SET deleted = TRUE WHERE id = ?", id)
+	rows, _, err := fs.connection.Mutate("UPDATE files SET deleted = TRUE WHERE id = ?", id)
 	if err != nil {
 		return err
+	} else if rows == 0 {
+		return storage.ErrorNoRecordUpdated
 	}
 
 	return nil
 }
 
 func (fs *FileStore) UpdateName(id core.FileId, name string) error {
-	_, _, err := fs.connection.Mutate("UPDATE files SET name = ? WHERE id = ?", name, id)
+	rows, _, err := fs.connection.Mutate("UPDATE files SET name = ? WHERE id = ?", name, id)
 	if err != nil {
 		return err
+	} else if rows == 0 {
+		return storage.ErrorNoRecordUpdated
 	}
 
 	return nil
 }
 
 func (fs *FileStore) UpdateGroup(id core.FileId, groupId string) error {
-	_, _, err := fs.connection.Mutate("UPDATE files SET group_id = ? WHERE id = ?", groupId, id)
+	rows, _, err := fs.connection.Mutate("UPDATE files SET group_id = ? WHERE id = ?", groupId, id)
 	if err != nil {
 		return err
+	} else if rows == 0 {
+		return storage.ErrorNoRecordUpdated
 	}
 
 	return nil
 }
 
 func (fs *FileStore) UpdateEncryption(id core.FileId, salt, keyId, test string) error {
-	_, _, err := fs.connection.Mutate("UPDATE files SET encrypt_salt = ?, encrypt_keyid = ?, encrypt_test = ? WHERE id = ?", salt, keyId, test, id)
+	rows, _, err := fs.connection.Mutate("UPDATE files SET encrypt_salt = ?, encrypt_keyid = ?, encrypt_test = ? WHERE id = ?", salt, keyId, test, id)
 	if err != nil {
 		return err
+	} else if rows == 0 {
+		return storage.ErrorNoRecordUpdated
 	}
 
 	return nil
