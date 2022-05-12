@@ -2,12 +2,8 @@ package sqlite
 
 import (
 	"database/sql"
-	"errors"
+	"embed"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-
 	_ "modernc.org/sqlite"
 )
 
@@ -15,10 +11,10 @@ type Connection struct {
 	db *sql.DB
 }
 
-func NewConnection(dataSource string) (*Connection, error) {
-	_, err := os.Stat(dataSource)
-	dbExists := !errors.Is(err, os.ErrNotExist)
+//go:embed migrations
+var migrationsDirectory embed.FS
 
+func NewConnection(dataSource string) (*Connection, error) {
 	db, err := sql.Open("sqlite", dataSource)
 
 	if err != nil {
@@ -27,16 +23,16 @@ func NewConnection(dataSource string) (*Connection, error) {
 
 	conn := &Connection{db: db}
 
-	if !dbExists {
-		sqlFilepath, _ := filepath.Abs("internal/storage/sqlite/migrations/init_account.sql")
-		content, _ := ioutil.ReadFile(sqlFilepath)
-		initSql := string(content)
+	content, err := migrationsDirectory.ReadFile("migrations/init_account.sql")
 
-		_, err := conn.Exec(initSql)
+	if err != nil {
+		return conn, err
+	}
 
-		if err != nil {
-			return conn, err
-		}
+	_, err = conn.Exec(string(content))
+
+	if err != nil {
+		return conn, err
 	}
 
 	return conn, nil
@@ -69,10 +65,6 @@ func (it *Connection) First(sqlString string, params ...any) (*sql.Row, error) {
 	defer stmt.Close()
 
 	row := stmt.QueryRow(params...)
-	err = row.Err()
-	if err != nil {
-		return nil, err
-	}
 
 	return row, nil
 }

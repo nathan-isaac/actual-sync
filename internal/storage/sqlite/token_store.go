@@ -1,7 +1,9 @@
 package sqlite
 
 import (
+	"database/sql"
 	"github.com/nathanjisaac/actual-server-go/internal/core"
+	"github.com/nathanjisaac/actual-server-go/internal/storage"
 )
 
 type TokenStore struct {
@@ -15,16 +17,19 @@ func NewTokenStore(connection *Connection) *TokenStore {
 }
 
 func (a *TokenStore) First() (core.Token, error) {
+	var password core.Token
+
 	row, err := a.connection.First("SELECT * FROM sessions")
 
 	if err != nil {
-		return "", err
+		return password, err
 	}
 
-	var password core.Token
-
 	if err = row.Scan(&password); err != nil {
-		return "", err
+		if err == sql.ErrNoRows {
+			return password, storage.RecordNotFound
+		}
+		return password, err
 	}
 
 	return password, nil
@@ -40,17 +45,20 @@ func (a *TokenStore) Add(token core.Token) error {
 }
 
 func (a *TokenStore) Has(token core.Token) (bool, error) {
-	rows, err := a.connection.All("SELECT * FROM sessions WHERE token = ?", token)
+	var count int
+
+	row, err := a.connection.First("SELECT count(*) FROM sessions WHERE token = ?", token)
 	if err != nil {
 		return false, err
 	}
-	if rows.Next() {
-		return true, nil
-	} else {
-		err = rows.Err()
-		if err != nil {
-			return false, err
-		}
-		return false, nil
+
+	if err = row.Scan(&count); err != nil {
+		return false, err
 	}
+
+	if count > 0 {
+		return true, nil
+	}
+
+	return false, nil
 }
