@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"database/sql"
+
 	"github.com/nathanjisaac/actual-server-go/internal/core"
 	"github.com/nathanjisaac/actual-server-go/internal/storage"
 )
@@ -17,22 +18,22 @@ func NewTokenStore(connection *Connection) *TokenStore {
 }
 
 func (a *TokenStore) First() (core.Token, error) {
-	var password core.Token
+	var token core.Token
 
 	row, err := a.connection.First("SELECT * FROM sessions")
 
 	if err != nil {
-		return password, err
+		return token, err
 	}
 
-	if err = row.Scan(&password); err != nil {
+	if err = row.Scan(&token); err != nil {
 		if err == sql.ErrNoRows {
-			return password, storage.RecordNotFound
+			return token, storage.ErrorRecordNotFound
 		}
-		return password, err
+		return token, err
 	}
 
-	return password, nil
+	return token, nil
 }
 
 func (a *TokenStore) Add(token core.Token) error {

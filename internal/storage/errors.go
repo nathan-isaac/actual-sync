@@ -3,5 +3,6 @@ package storage
 import "errors"
 
 var (
-	RecordNotFound = errors.New("record not found")
+	ErrorRecordNotFound  = errors.New("record not found")
+	ErrorNoRecordUpdated = errors.New("no record updated")
 )

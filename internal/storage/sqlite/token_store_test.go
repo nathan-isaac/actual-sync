@@ -1,29 +1,33 @@
-package sqlite
+package sqlite_test
 
 import (
-	"github.com/nathanjisaac/actual-server-go/internal/storage"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/nathanjisaac/actual-server-go/internal/storage"
+	"github.com/nathanjisaac/actual-server-go/internal/storage/sqlite"
+	"github.com/stretchr/testify/assert"
 )
 
-func newStore(t *testing.T) *TokenStore {
-	conn, err := NewConnection(":memory:")
+func newTestTokenStore(t *testing.T) (*sqlite.TokenStore, *sqlite.Connection) {
+	conn, err := sqlite.NewConnection(":memory:")
 	assert.NoError(t, err)
 
-	return NewTokenStore(conn)
+	return sqlite.NewTokenStore(conn), conn
 }
 
 func TestTokenStore_First(t *testing.T) {
 	t.Run("given no rows", func(t *testing.T) {
-		store := newStore(t)
+		store, conn := newTestTokenStore(t)
+		defer conn.Close()
 
 		_, err := store.First()
 
-		assert.ErrorIs(t, err, storage.RecordNotFound)
+		assert.ErrorIs(t, err, storage.ErrorRecordNotFound)
 	})
 
 	t.Run("given one row", func(t *testing.T) {
-		store := newStore(t)
+		store, conn := newTestTokenStore(t)
+		defer conn.Close()
 
 		err := store.Add("token")
 		assert.NoError(t, err)
@@ -35,7 +39,8 @@ func TestTokenStore_First(t *testing.T) {
 	})
 
 	t.Run("given two rows then return first", func(t *testing.T) {
-		store := newStore(t)
+		store, conn := newTestTokenStore(t)
+		defer conn.Close()
 
 		err := store.Add("a")
 		assert.NoError(t, err)
@@ -51,7 +56,8 @@ func TestTokenStore_First(t *testing.T) {
 
 func TestTokenStore_Has(t *testing.T) {
 	t.Run("given no rows", func(t *testing.T) {
-		store := newStore(t)
+		store, conn := newTestTokenStore(t)
+		defer conn.Close()
 
 		hasToken, err := store.Has("token")
 
@@ -60,7 +66,8 @@ func TestTokenStore_Has(t *testing.T) {
 	})
 
 	t.Run("given one row", func(t *testing.T) {
-		store := newStore(t)
+		store, conn := newTestTokenStore(t)
+		defer conn.Close()
 
 		err := store.Add("token")
 		assert.NoError(t, err)
@@ -72,7 +79,8 @@ func TestTokenStore_Has(t *testing.T) {
 	})
 
 	t.Run("given one row with miss matching token", func(t *testing.T) {
-		store := newStore(t)
+		store, conn := newTestTokenStore(t)
+		defer conn.Close()
 
 		err := store.Add("token")
 		assert.NoError(t, err)
