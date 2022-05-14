@@ -160,11 +160,10 @@ func TestFileStore_ClearGroup(t *testing.T) {
 		err = store.ClearGroup("1")
 		assert.NoError(t, err)
 
-		// TODO: The snuppet below can be used when File.GroupId type is made NULLABLE
-		// f, err := store.ForId("1", false)
+		f, err := store.ForId("1", false)
 
-		// assert.NoError(t, err)
-		// assert.Equal(t, &core.File{FileId: "1", GroupId: nil, SyncVersion: 1, EncryptMeta: "A1B2C3", EncryptSalt: "salt1", EncryptKeyId: "keyid1", EncryptTest: "test1", Deleted: false, Name: "Budget1"}, f)
+		assert.NoError(t, err)
+		assert.Equal(t, &core.File{FileId: "1", GroupId: "", SyncVersion: 1, EncryptMeta: "A1B2C3", EncryptSalt: "salt1", EncryptKeyId: "keyid1", EncryptTest: "test1", Deleted: false, Name: "Budget1"}, f)
 	})
 }
 

@@ -24,12 +24,16 @@ func (fs *FileStore) ForId(id core.FileId, deleted bool) (*core.File, error) {
 	}
 
 	var f core.File
+	var gid sql.NullString
 
-	if err = row.Scan(&f.FileId, &f.GroupId, &f.SyncVersion, &f.EncryptMeta, &f.EncryptKeyId, &f.EncryptSalt, &f.EncryptTest, &f.Deleted, &f.Name); err != nil {
+	if err = row.Scan(&f.FileId, &gid, &f.SyncVersion, &f.EncryptMeta, &f.EncryptKeyId, &f.EncryptSalt, &f.EncryptTest, &f.Deleted, &f.Name); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, storage.ErrorRecordNotFound
 		}
 		return nil, err
+	}
+	if gid.Valid {
+		f.GroupId = gid.String
 	}
 
 	return &f, nil
@@ -45,9 +49,15 @@ func (fs *FileStore) All() ([]*core.File, error) {
 	files := make([]*core.File, 0)
 	for rows.Next() {
 		var f core.File
-		if err := rows.Scan(&f.FileId, &f.GroupId, &f.SyncVersion, &f.EncryptMeta, &f.EncryptKeyId, &f.EncryptSalt, &f.EncryptTest, &f.Deleted, &f.Name); err != nil {
+		var gid sql.NullString
+
+		if err := rows.Scan(&f.FileId, &gid, &f.SyncVersion, &f.EncryptMeta, &f.EncryptKeyId, &f.EncryptSalt, &f.EncryptTest, &f.Deleted, &f.Name); err != nil {
 			return nil, err
 		}
+		if gid.Valid {
+			f.GroupId = gid.String
+		}
+
 		files = append(files, &f)
 	}
 
