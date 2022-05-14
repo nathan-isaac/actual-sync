@@ -10,3 +10,8 @@ type RouteHandler struct {
 	PasswordStore core.PasswordStore
 	TokenStore    core.TokenStore
 }
+
+type ErrorResponse struct {
+	Status string `json:"status"`
+	Reason string `json:"reason"`
+}

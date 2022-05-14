@@ -74,7 +74,10 @@ to quickly create a Cobra application.`,
 			TokenStore:    sqlite.NewTokenStore(conn),
 			PasswordStore: sqlite.NewPasswordStore(conn),
 		}
-		e.GET("mode", handler.GetMode)
+		e.GET("/mode", handler.GetMode)
+
+		account := e.Group("/account")
+		account.GET("/needs-bootstrap", handler.NeedsBootstrap)
 
 		e.Logger.Fatal(e.Start(fmt.Sprintf("%v:%v", config.Hostname, config.Port)))
 	},
