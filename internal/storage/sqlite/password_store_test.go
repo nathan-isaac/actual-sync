@@ -9,7 +9,7 @@ import (
 )
 
 func newTestPasswordStore(t *testing.T) (*sqlite.PasswordStore, *sqlite.Connection) {
-	conn, err := sqlite.NewConnection(":memory:")
+	conn, err := sqlite.NewAccountConnection(":memory:")
 	assert.NoError(t, err)
 
 	return sqlite.NewPasswordStore(conn), conn

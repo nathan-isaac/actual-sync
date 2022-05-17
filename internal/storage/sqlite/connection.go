@@ -15,7 +15,7 @@ type Connection struct {
 //go:embed migrations
 var migrationsDirectory embed.FS
 
-func NewConnection(dataSource string) (*Connection, error) {
+func NewAccountConnection(dataSource string) (*Connection, error) {
 	db, err := sql.Open("sqlite", dataSource)
 
 	if err != nil {
@@ -24,7 +24,31 @@ func NewConnection(dataSource string) (*Connection, error) {
 
 	conn := &Connection{db: db}
 
-	content, err := migrationsDirectory.ReadFile("migrations/init_account.sql")
+	content, err := migrationsDirectory.ReadFile("migrations/account/init.sql")
+
+	if err != nil {
+		return conn, err
+	}
+
+	_, err = conn.Exec(string(content))
+
+	if err != nil {
+		return conn, err
+	}
+
+	return conn, nil
+}
+
+func NewMessageConnection(dataSource string) (*Connection, error) {
+	db, err := sql.Open("sqlite", dataSource)
+
+	if err != nil {
+		return nil, err
+	}
+
+	conn := &Connection{db: db}
+
+	content, err := migrationsDirectory.ReadFile("migrations/message/init.sql")
 
 	if err != nil {
 		return conn, err

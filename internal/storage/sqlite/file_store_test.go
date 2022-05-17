@@ -10,7 +10,7 @@ import (
 )
 
 func newTestFileStore(t *testing.T) (*sqlite.FileStore, *sqlite.Connection) {
-	conn, err := sqlite.NewConnection(":memory:")
+	conn, err := sqlite.NewAccountConnection(":memory:")
 	assert.NoError(t, err)
 
 	return sqlite.NewFileStore(conn), conn

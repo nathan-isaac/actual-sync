@@ -9,7 +9,7 @@ import (
 )
 
 func newTestTokenStore(t *testing.T) (*sqlite.TokenStore, *sqlite.Connection) {
-	conn, err := sqlite.NewConnection(":memory:")
+	conn, err := sqlite.NewAccountConnection(":memory:")
 	assert.NoError(t, err)
 
 	return sqlite.NewTokenStore(conn), conn
