@@ -8,7 +8,7 @@ type BinaryMessage struct {
 
 type MessageStore interface {
 	Add(message BinaryMessage) (bool, error)
-	GetSense(timestamp string) ([]*BinaryMessage, error)
+	GetSince(timestamp string) ([]*BinaryMessage, error)
 }
 
 type MerkleMessage struct {
@@ -18,5 +18,5 @@ type MerkleMessage struct {
 
 type MerkleStore interface {
 	Add(message MerkleMessage) error
-	GetForGroup(groupId string) ([]*MerkleMessage, error)
+	GetForGroup(groupId string) (*MerkleMessage, error)
 }
