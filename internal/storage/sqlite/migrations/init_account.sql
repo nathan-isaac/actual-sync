@@ -10,26 +10,13 @@ CREATE TABLE IF NOT EXISTS sessions
 
 CREATE TABLE IF NOT EXISTS files
 (
-    id
-    TEXT
-    PRIMARY
-    KEY,
-    group_id
-    TEXT,
-    sync_version
-    SMALLINT,
-    encrypt_meta
-    TEXT,
-    encrypt_keyid
-    TEXT,
-    encrypt_salt
-    TEXT,
-    encrypt_test
-    TEXT,
-    deleted
-    BOOLEAN
-    DEFAULT
-    FALSE,
-    name
-    TEXT
+    id TEXT PRIMARY KEY,
+    group_id TEXT,
+    sync_version SMALLINT,
+    encrypt_meta TEXT,
+    encrypt_keyid TEXT,
+    encrypt_salt TEXT,
+    encrypt_test TEXT,
+    deleted BOOLEAN DEFAULT FALSE,
+    name TEXT
 );
