@@ -2,18 +2,14 @@ package cmd
 
 import (
 	"embed"
-	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/nathanjisaac/actual-server-go/internal"
 	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/nathanjisaac/actual-server-go/internal/routes"
-	"github.com/nathanjisaac/actual-server-go/internal/storage/sqlite"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var BuildDirectory embed.FS
@@ -21,25 +17,27 @@ var BuildDirectory embed.FS
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "This command will start the actual-sync server",
+	Long: `This command will start the actual-sync server with the 
+specified configurations along with this command.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		serverFiles, err := filepath.Abs("data/server-files")
-		if err != nil {
-			log.Fatal(err)
-		}
+		headless := viper.GetBool("headless")
+		production := viper.GetBool("production")
+		port := viper.GetInt("port")
+		dataPath := viper.GetString("data-path")
 
-		userFiles, err := filepath.Abs("data/user-files")
-		if err != nil {
-			log.Fatal(err)
+		if !filepath.IsAbs(dataPath) {
+			path, err := filepath.Abs(dataPath)
+			if err != nil {
+				log.Fatal(err)
+			} else {
+				dataPath = path
+			}
 		}
+		serverFiles := filepath.Join(dataPath, "server-files")
+		userFiles := filepath.Join(dataPath, "user-files")
 
-		err = os.MkdirAll(serverFiles, os.ModePerm)
+		err := os.MkdirAll(serverFiles, os.ModePerm)
 
 		if err != nil {
 			log.Fatal(err)
@@ -51,36 +49,21 @@ to quickly create a Cobra application.`,
 			log.Fatal(err)
 		}
 
+		mode := core.Development
+		if production {
+			mode = core.Production
+		}
+
 		config := core.Config{
-			Mode:        core.Development,
-			Port:        1323,
+			Mode:        mode,
+			Port:        port,
 			Hostname:    "0.0.0.0",
 			ServerFiles: serverFiles,
 			UserFiles:   userFiles,
 		}
 
-		e := echo.New()
-		e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
-			Root:       "node_modules/@actual-app/web/build",
-			HTML5:      true,
-			Filesystem: http.FS(BuildDirectory),
-		}))
-		conn, err := sqlite.NewAccountConnection(filepath.Join(config.ServerFiles, "account.sqlite"))
-		if err != nil {
-			e.Logger.Fatal(err)
-		}
-		handler := routes.RouteHandler{
-			Config:        config,
-			FileStore:     sqlite.NewFileStore(conn),
-			TokenStore:    sqlite.NewTokenStore(conn),
-			PasswordStore: sqlite.NewPasswordStore(conn),
-		}
-		e.GET("/mode", handler.GetMode)
+		internal.StartServer(config, BuildDirectory, headless)
 
-		account := e.Group("/account")
-		account.GET("/needs-bootstrap", handler.NeedsBootstrap)
-
-		e.Logger.Fatal(e.Start(fmt.Sprintf("%v:%v", config.Hostname, config.Port)))
 	},
 }
 
@@ -95,5 +78,13 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// serveCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	serveCmd.Flags().BoolP("headless", "l", false, "Runs actual-sync without the web app")
+	serveCmd.Flags().Bool("production", false, "Runs actual-sync in production mode")
+	serveCmd.Flags().IntP("port", "p", 5006, "Runs actual-sync at specified port")
+	serveCmd.Flags().StringP("data-path", "d", "data", "Sets data directory path")
+
+	viper.BindPFlag("headless", serveCmd.Flags().Lookup("headless"))
+	viper.BindPFlag("production", serveCmd.Flags().Lookup("production"))
+	viper.BindPFlag("port", serveCmd.Flags().Lookup("port"))
+	viper.BindPFlag("data-path", serveCmd.Flags().Lookup("data-path"))
 }
