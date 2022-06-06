@@ -193,7 +193,10 @@ func (it *RouteHandler) ChangePassword(c echo.Context) error {
 	}
 	// Note that this doesn't have an ID/USERNAME to set password. This table only ever
 	// has 1 row (maybe that will change in the future? if this this will not work)
-	it.PasswordStore.Set(string(hash))
+	err = it.PasswordStore.Set(string(hash))
+	if err != nil {
+		return err
+	}
 
 	r := &SuccessResponse{Status: "ok", Data: nil}
 	return c.JSON(http.StatusOK, r)
