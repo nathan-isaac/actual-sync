@@ -13,9 +13,21 @@ import (
 	"github.com/nathanjisaac/actual-server-go/internal/storage/sqlite"
 )
 
+// Used for `SharedArrayBuffer` to work in client
+func setHeaders(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		c.Response().Header().Set("Cross-Origin-Opener-Policy", "same-origin")
+		c.Response().Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
+		return next(c)
+	}
+}
+
 func StartServer(config core.Config, BuildDirectory embed.FS, headless bool) {
 	e := echo.New()
 	e.HideBanner = true
+
+	e.Use(middleware.CORS())
+	e.Use(setHeaders)
 
 	if !headless {
 		e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
@@ -40,6 +52,10 @@ func StartServer(config core.Config, BuildDirectory embed.FS, headless bool) {
 
 	account := e.Group("/account")
 	account.GET("/needs-bootstrap", handler.NeedsBootstrap)
+	account.POST("/bootstrap", handler.Bootstrap)
+	account.POST("/login", handler.Login)
+	account.POST("/change-password", handler.ChangePassword)
+	account.GET("/validate", handler.ValidateUser)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf("%v:%v", config.Hostname, config.Port)))
 }

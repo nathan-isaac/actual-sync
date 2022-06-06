@@ -10,6 +10,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@actual-app/web": "^4.0.2"
+    "@actual-app/web": "^4.1.0"
   }
 }
