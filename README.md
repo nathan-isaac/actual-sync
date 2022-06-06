@@ -1,6 +1,5 @@
 # <center> Actual-sync </center>
 
-___
 [![Go](https://github.com/nathanjisaac/actual-sync/actions/workflows/go.yml/badge.svg)](https://github.com/nathanjisaac/actual-sync/actions/workflows/go.yml)
 
 ## ⚠️⚠️ Work In Progress ⚠️⚠️
@@ -17,12 +16,13 @@ Current roadmap is documented on the [roadmap discussion](https://github.com/nat
 The architecture is still somewhat of a WIP. But the high level gist looks like this.
 
 ```text
-main.go - Root Entrypoint
-cmd/ - CLI Entrypoint
+main.go         - Root Entrypoint
+cmd/            - CLI Entrypoint
 internal/
-    core - Domain logic handler functions to be used in the routes
-    routes - Echo route handlers
-    storage - Impelemtnations for the storage gateway [sqlite, files] - (PostgreSQL) to follow if needed
+    server.go   - Echo server implementation
+    core        - Domain logic handler functions to be used in the routes
+    routes      - Echo route handlers
+    storage     - Implementations for the storage gateway [sqlite, memory] - (PostgreSQL) to follow if needed
 ```
 
 ## CLI Usage
@@ -56,14 +56,20 @@ actual-sync serve [flags]
       --config string   config file (default is $HOME/.actual-sync.yaml)
 ```
 
-### Development
+## Development
 
-#### Dependencies
+### Dependencies
 
-- Node.js
-- go
+#### Build dependencies
 
-#### Steps to run
+- [Node.js](https://nodejs.dev/)
+- [go](https://go.dev/)
+
+#### Development dependencies
+
+- [golangci-lint](https://golangci-lint.run/)
+
+### Steps to run
 
 1. Install node_modules (actual-web)
 
@@ -76,3 +82,5 @@ $ npm install
 ```shell
 $ go run main.go serve
 ```
+
+**NOTE: Run `golangci-lint run` after changes(if any) to ensure code quality.**
