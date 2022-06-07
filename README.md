@@ -1,4 +1,4 @@
-# <center> Actual-sync </center>
+# Actual Sync
 
 [![Go](https://github.com/nathanjisaac/actual-sync/actions/workflows/go.yml/badge.svg)](https://github.com/nathanjisaac/actual-sync/actions/workflows/go.yml)
 
