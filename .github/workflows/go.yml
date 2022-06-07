@@ -1,31 +1,75 @@
 name: Go
 
-on: [ push, pull_request ]
+on: [push, pull_request]
 
 jobs:
-
-  build:
+  Lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.18
-        
-    - name: Setup Node.js environment
-      uses: actions/setup-node@v3.1.1
-      with:
-        node-version-file: .nvmrc
-        cache: npm
-        cache-dependency-path: package-lock.json
-        
-    - name: Install
-      run: npm install --no-dev
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
 
-    - name: Build
-      run: go build -v ./...
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3.1.1
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-    - name: Test
-      run: go test -v ./...
+      - name: Install actual-web
+        run: npm install --no-dev
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+
+  Test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3.1.1
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install actual-web
+        run: npm install --no-dev
+
+      - name: Test
+        run: go test -v ./...
+
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3.1.1
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install actual-web
+        run: npm install --no-dev
+
+      - name: Build
+        run: go build -v ./...

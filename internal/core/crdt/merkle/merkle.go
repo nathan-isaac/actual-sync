@@ -46,7 +46,7 @@ func (trie *Merkle) insertKey(key string, hash uint32) *Merkle {
 	}
 	c := string(key[0])
 	n := newTrie.Children[c]
-	newTrie.Children[c] = newTrie.insertKey(string(key[1:]), hash)
+	newTrie.Children[c] = newTrie.insertKey(key[1:], hash)
 	if n != nil {
 		newTrie.Children[c].Hash = n.Hash ^ hash
 	} else {

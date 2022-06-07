@@ -1,13 +1,15 @@
-package routes
+package routes_test
 
 import (
-	"github.com/labstack/echo/v4"
-	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/labstack/echo/v4"
+	"github.com/nathanjisaac/actual-server-go/internal/core"
+	"github.com/nathanjisaac/actual-server-go/internal/routes"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetMode(t *testing.T) {
@@ -16,7 +18,7 @@ func TestGetMode(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	h := &RouteHandler{Config: core.Config{Mode: core.Development}}
+	h := &routes.RouteHandler{Config: core.Config{Mode: core.Development}}
 
 	if assert.NoError(t, h.GetMode(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)

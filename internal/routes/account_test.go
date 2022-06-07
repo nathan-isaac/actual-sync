@@ -113,10 +113,11 @@ func TestBootstrap(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		h, c, rec := setupHandler(`{"password":"pass"}`, pStore, nil)
 
-		pStore.Add("password")
+		err := pStore.Add("password")
+		assert.NoError(t, err)
 
 		var res routes.FailureResponse
-		err := h.Bootstrap(c)
+		err = h.Bootstrap(c)
 		assert.NoError(t, err)
 
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
@@ -150,8 +151,10 @@ func TestLogin(t *testing.T) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
-		pStore.Add(string(hash))
-		tStore.Add(uuid.NewString())
+		err = pStore.Add(string(hash))
+		assert.NoError(t, err)
+		err = tStore.Add(uuid.NewString())
+		assert.NoError(t, err)
 
 		var res routes.LoginFailResponse
 		err = h.Login(c)
@@ -187,8 +190,10 @@ func TestLogin(t *testing.T) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
-		pStore.Add(string(hash))
-		tStore.Add(uuid.NewString())
+		err = pStore.Add(string(hash))
+		assert.NoError(t, err)
+		err = tStore.Add(uuid.NewString())
+		assert.NoError(t, err)
 
 		var res routes.LoginFailResponse
 		err = h.Login(c)
@@ -208,9 +213,11 @@ func TestLogin(t *testing.T) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
-		pStore.Add(string(hash))
+		err = pStore.Add(string(hash))
+		assert.NoError(t, err)
 		token := uuid.NewString()
-		tStore.Add(token)
+		err = tStore.Add(token)
+		assert.NoError(t, err)
 
 		var res routes.LoginSuccessResponse
 		err = h.Login(c)
@@ -233,8 +240,10 @@ func TestChangePassword(t *testing.T) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
-		pStore.Add(string(hash))
-		tStore.Add(token)
+		err = pStore.Add(string(hash))
+		assert.NoError(t, err)
+		err = tStore.Add(token)
+		assert.NoError(t, err)
 
 		var res routes.FailureResponse
 		err = h.ChangePassword(c)
@@ -254,8 +263,10 @@ func TestChangePassword(t *testing.T) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
-		pStore.Add(string(hash))
-		tStore.Add(token)
+		err = pStore.Add(string(hash))
+		assert.NoError(t, err)
+		err = tStore.Add(token)
+		assert.NoError(t, err)
 
 		var res routes.FailureResponse
 		err = h.ChangePassword(c)
@@ -275,8 +286,10 @@ func TestChangePassword(t *testing.T) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
-		pStore.Add(string(hash))
-		tStore.Add(token)
+		err = pStore.Add(string(hash))
+		assert.NoError(t, err)
+		err = tStore.Add(token)
+		assert.NoError(t, err)
 		c.Request().Header.Set("x-actual-token", token)
 
 		var res routes.FailureResponse
@@ -297,8 +310,10 @@ func TestChangePassword(t *testing.T) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
-		pStore.Add(string(hash))
-		tStore.Add(token)
+		err = pStore.Add(string(hash))
+		assert.NoError(t, err)
+		err = tStore.Add(token)
+		assert.NoError(t, err)
 
 		var res routes.SuccessResponse
 		err = h.ChangePassword(c)
@@ -318,8 +333,10 @@ func TestChangePassword(t *testing.T) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
-		pStore.Add(string(hash))
-		tStore.Add(token)
+		err = pStore.Add(string(hash))
+		assert.NoError(t, err)
+		err = tStore.Add(token)
+		assert.NoError(t, err)
 		c.Request().Header.Set("x-actual-token", token)
 
 		var res routes.SuccessResponse
@@ -342,8 +359,10 @@ func TestValidateUser(t *testing.T) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
-		pStore.Add(string(hash))
-		tStore.Add(token)
+		err = pStore.Add(string(hash))
+		assert.NoError(t, err)
+		err = tStore.Add(token)
+		assert.NoError(t, err)
 
 		var res routes.FailureResponse
 		err = h.ValidateUser(c)
@@ -363,8 +382,10 @@ func TestValidateUser(t *testing.T) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
-		pStore.Add(string(hash))
-		tStore.Add(uuid.NewString())
+		err = pStore.Add(string(hash))
+		assert.NoError(t, err)
+		err = tStore.Add(uuid.NewString())
+		assert.NoError(t, err)
 
 		var res routes.FailureResponse
 		err = h.ValidateUser(c)
@@ -384,8 +405,10 @@ func TestValidateUser(t *testing.T) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
-		pStore.Add(string(hash))
-		tStore.Add(token)
+		err = pStore.Add(string(hash))
+		assert.NoError(t, err)
+		err = tStore.Add(token)
+		assert.NoError(t, err)
 		c.Request().Header.Set("x-actual-token", uuid.NewString())
 
 		var res routes.FailureResponse
@@ -406,8 +429,10 @@ func TestValidateUser(t *testing.T) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
-		pStore.Add(string(hash))
-		tStore.Add(token)
+		err = pStore.Add(string(hash))
+		assert.NoError(t, err)
+		err = tStore.Add(token)
+		assert.NoError(t, err)
 
 		var res routes.ValidateUserResponse
 		err = h.ValidateUser(c)
@@ -428,8 +453,10 @@ func TestValidateUser(t *testing.T) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
-		pStore.Add(string(hash))
-		tStore.Add(token)
+		err = pStore.Add(string(hash))
+		assert.NoError(t, err)
+		err = tStore.Add(token)
+		assert.NoError(t, err)
 		c.Request().Header.Set("x-actual-token", token)
 
 		var res routes.ValidateUserResponse
