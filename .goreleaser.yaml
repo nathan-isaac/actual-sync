@@ -1,0 +1,36 @@
+project_name: actual-sync
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    # 32-bit Windows unsupported by pure-go sqlite driver
+    ignore:
+      - goos: windows
+        goarch: "386"
+    ldflags:
+      - -s -w -X github.com/nathanjisaac/actual-server-go/cmd.Version={{.Version}} -X github.com/nathanjisaac/actual-server-go/cmd.Commit={{.Commit}} -X github.com/nathanjisaac/actual-server-go/cmd.Date={{.Date}} -X github.com/nathanjisaac/actual-server-go/cmd.BuiltBy=goreleaser
+archives:
+  - replacements:
+      darwin: MacOS
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+    format_overrides:
+      - goos: windows
+        format: zip
+
+changelog:
+  use: github
+
+release:
+  draft: true
+  prerelease: auto
