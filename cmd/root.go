@@ -5,8 +5,14 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-
 	"github.com/spf13/viper"
+)
+
+var (
+	Version = "dev"
+	Commit  = "none"
+	Date    = "unknown"
+	BuiltBy = "unknown"
 )
 
 var cfgFile string
@@ -18,6 +24,7 @@ var rootCmd = &cobra.Command{
 	Long: `actual-sync is a CLI application to run the sync server as
 well as the web instance of Actual, a local-first personal 
 finance tool.`,
+	Version: Version,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
