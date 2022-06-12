@@ -9,16 +9,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type SuccessResponse struct {
-	Status string      `json:"status"`
-	Data   interface{} `json:"data"`
-}
-
-type FailureResponse struct {
-	Status string `json:"status"`
-	Reason string `json:"reason"`
-}
-
 type NeedsBootstrapData struct {
 	Bootstrapped bool `json:"bootstrapped"`
 }
@@ -32,6 +22,7 @@ func (it *RouteHandler) NeedsBootstrap(c echo.Context) error {
 	count, err := it.PasswordStore.Count()
 
 	if err != nil {
+		c.Echo().Logger.Error(err)
 		return err
 	}
 
@@ -61,11 +52,12 @@ type BootstrapResponse struct {
 func (it *RouteHandler) Bootstrap(c echo.Context) error {
 	req := new(BootstrapRequestBody)
 	if err := c.Bind(req); err != nil {
+		c.Echo().Logger.Error(err)
 		return err
 	}
 
 	if req.Password == "" {
-		r := &FailureResponse{
+		r := &ErrorResponse{
 			Status: "error",
 			Reason: "invalid-password",
 		}
@@ -74,10 +66,11 @@ func (it *RouteHandler) Bootstrap(c echo.Context) error {
 
 	count, err := it.PasswordStore.Count()
 	if err != nil {
+		c.Echo().Logger.Error(err)
 		return err
 	}
 	if count != 0 {
-		r := &FailureResponse{
+		r := &ErrorResponse{
 			Status: "error",
 			Reason: "already-bootstrapped",
 		}
@@ -86,16 +79,19 @@ func (it *RouteHandler) Bootstrap(c echo.Context) error {
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
 	if err != nil {
+		c.Echo().Logger.Error(err)
 		return err
 	}
 	err = it.PasswordStore.Add(string(hashed))
 	if err != nil {
+		c.Echo().Logger.Error(err)
 		return err
 	}
 
 	token := uuid.NewString()
 	err = it.TokenStore.Add(token)
 	if err != nil {
+		c.Echo().Logger.Error(err)
 		return err
 	}
 	r := &BootstrapResponse{
@@ -131,6 +127,7 @@ type LoginFailResponse struct {
 func (it *RouteHandler) Login(c echo.Context) error {
 	req := new(LoginRequestBody)
 	if err := c.Bind(req); err != nil {
+		c.Echo().Logger.Error(err)
 		return err
 	}
 
@@ -147,6 +144,7 @@ func (it *RouteHandler) Login(c echo.Context) error {
 		// maybe each device has a different token
 		token, err := it.TokenStore.First()
 		if err != nil {
+			c.Echo().Logger.Error(err)
 			return err
 		}
 		r := &LoginSuccessResponse{
@@ -168,11 +166,12 @@ type ChangePassRequestBody struct {
 func (it *RouteHandler) ChangePassword(c echo.Context) error {
 	req := new(ChangePassRequestBody)
 	if err := c.Bind(req); err != nil {
+		c.Echo().Logger.Error(err)
 		return err
 	}
-	val := it.authenticateUser(c, &req.Token)
+	val := it.authenticateUser(c, req.Token)
 	if !val {
-		r := &FailureResponse{
+		r := &ErrorResponse{
 			Status: "error",
 			Reason: "auth-error",
 		}
@@ -180,7 +179,7 @@ func (it *RouteHandler) ChangePassword(c echo.Context) error {
 	}
 
 	if req.Password == "" {
-		r := &FailureResponse{
+		r := &ErrorResponse{
 			Status: "error",
 			Reason: "invalid-password",
 		}
@@ -189,12 +188,14 @@ func (it *RouteHandler) ChangePassword(c echo.Context) error {
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
 	if err != nil {
+		c.Echo().Logger.Error(err)
 		return err
 	}
 	// Note that this doesn't have an ID/USERNAME to set password. This table only ever
 	// has 1 row (maybe that will change in the future? if this this will not work)
 	err = it.PasswordStore.Set(string(hash))
 	if err != nil {
+		c.Echo().Logger.Error(err)
 		return err
 	}
 
@@ -217,11 +218,12 @@ type ValidateUserResponse struct {
 func (it *RouteHandler) ValidateUser(c echo.Context) error {
 	req := new(ValidateUserRequestBody)
 	if err := c.Bind(req); err != nil {
+		c.Echo().Logger.Error(err)
 		return err
 	}
-	val := it.authenticateUser(c, &req.Token)
+	val := it.authenticateUser(c, req.Token)
 	if !val {
-		r := &FailureResponse{
+		r := &ErrorResponse{
 			Status: "error",
 			Reason: "auth-error",
 		}
@@ -232,11 +234,14 @@ func (it *RouteHandler) ValidateUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, r)
 }
 
-func (it *RouteHandler) authenticateUser(c echo.Context, token *core.Token) bool {
-	if *token == "" {
-		*token = c.Request().Header.Get("x-actual-token")
+func (it *RouteHandler) authenticateUser(c echo.Context, token core.Token) bool {
+	if token == "" {
+		token = c.Request().Header.Get("x-actual-token")
 	}
-	res, err := it.TokenStore.Has(*token)
+	if token == "" {
+		return false
+	}
+	res, err := it.TokenStore.Has(token)
 	if err != nil {
 		return false
 	}

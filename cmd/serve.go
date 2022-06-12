@@ -8,6 +8,7 @@ import (
 
 	"github.com/nathanjisaac/actual-server-go/internal"
 	"github.com/nathanjisaac/actual-server-go/internal/core"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -37,13 +38,15 @@ specified configurations along with this command.`,
 		serverFiles := filepath.Join(dataPath, "server-files")
 		userFiles := filepath.Join(dataPath, "user-files")
 
-		err := os.MkdirAll(serverFiles, os.ModePerm)
+		fs := afero.NewOsFs()
+
+		err := fs.MkdirAll(serverFiles, os.ModePerm)
 
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		err = os.MkdirAll(userFiles, os.ModePerm)
+		err = fs.MkdirAll(userFiles, os.ModePerm)
 
 		if err != nil {
 			log.Fatal(err)
@@ -60,6 +63,7 @@ specified configurations along with this command.`,
 			Hostname:    "0.0.0.0",
 			ServerFiles: serverFiles,
 			UserFiles:   userFiles,
+			FileSystem:  fs,
 		}
 
 		internal.StartServer(config, BuildDirectory, headless)

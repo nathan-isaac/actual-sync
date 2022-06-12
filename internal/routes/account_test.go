@@ -17,7 +17,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func setupHandler(body string, pstore *memory.PasswordStore, tstore *memory.TokenStore) (*routes.RouteHandler, echo.Context, *httptest.ResponseRecorder) {
+func setupAccountTestHandler(body string, pstore core.PasswordStore, tstore core.TokenStore) (*routes.RouteHandler, echo.Context, *httptest.ResponseRecorder) {
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(body))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
@@ -65,7 +65,7 @@ func setupHandler(body string, pstore *memory.PasswordStore, tstore *memory.Toke
 func TestNeedsBootstrap(t *testing.T) {
 	t.Run("given no passwords then return not bootstrapped", func(t *testing.T) {
 		store := memory.NewPasswordStore()
-		h, c, rec := setupHandler("", store, nil)
+		h, c, rec := setupAccountTestHandler("", store, nil)
 
 		var res routes.NeedsBootstrapResponse
 		err := h.NeedsBootstrap(c)
@@ -79,7 +79,7 @@ func TestNeedsBootstrap(t *testing.T) {
 
 	t.Run("given a password then return bootstrapped", func(t *testing.T) {
 		store := memory.NewPasswordStore()
-		h, c, rec := setupHandler("", store, nil)
+		h, c, rec := setupAccountTestHandler("", store, nil)
 
 		err := store.Add("password")
 		assert.NoError(t, err)
@@ -97,9 +97,9 @@ func TestNeedsBootstrap(t *testing.T) {
 
 func TestBootstrap(t *testing.T) {
 	t.Run("given empty body password then returns error", func(t *testing.T) {
-		h, c, rec := setupHandler("", nil, nil)
+		h, c, rec := setupAccountTestHandler("", nil, nil)
 
-		var res routes.FailureResponse
+		var res routes.ErrorResponse
 		err := h.Bootstrap(c)
 		assert.NoError(t, err)
 
@@ -111,12 +111,12 @@ func TestBootstrap(t *testing.T) {
 
 	t.Run("given already bootstrapped then returns error", func(t *testing.T) {
 		pStore := memory.NewPasswordStore()
-		h, c, rec := setupHandler(`{"password":"pass"}`, pStore, nil)
+		h, c, rec := setupAccountTestHandler(`{"password":"pass"}`, pStore, nil)
 
 		err := pStore.Add("password")
 		assert.NoError(t, err)
 
-		var res routes.FailureResponse
+		var res routes.ErrorResponse
 		err = h.Bootstrap(c)
 		assert.NoError(t, err)
 
@@ -129,7 +129,7 @@ func TestBootstrap(t *testing.T) {
 	t.Run("given not bootstrapped then returns token", func(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
-		h, c, rec := setupHandler(`{"password":"pass"}`, pStore, tStore)
+		h, c, rec := setupAccountTestHandler(`{"password":"pass"}`, pStore, tStore)
 
 		var res routes.BootstrapResponse
 		err := h.Bootstrap(c)
@@ -147,7 +147,7 @@ func TestLogin(t *testing.T) {
 	t.Run("given empty password then returns no token", func(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
-		h, c, rec := setupHandler("", pStore, tStore)
+		h, c, rec := setupAccountTestHandler("", pStore, tStore)
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
@@ -170,7 +170,7 @@ func TestLogin(t *testing.T) {
 	t.Run("given not bootstrapped then returns no token", func(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
-		h, c, rec := setupHandler("", pStore, tStore)
+		h, c, rec := setupAccountTestHandler("", pStore, tStore)
 
 		var res routes.LoginFailResponse
 		err := h.Login(c)
@@ -186,7 +186,7 @@ func TestLogin(t *testing.T) {
 	t.Run("given wrong password then returns no token", func(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
-		h, c, rec := setupHandler(`{"password":"pass"}`, pStore, tStore)
+		h, c, rec := setupAccountTestHandler(`{"password":"pass"}`, pStore, tStore)
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
@@ -209,7 +209,7 @@ func TestLogin(t *testing.T) {
 	t.Run("given correct password then returns token", func(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
-		h, c, rec := setupHandler(`{"password":"password123"}`, pStore, tStore)
+		h, c, rec := setupAccountTestHandler(`{"password":"password123"}`, pStore, tStore)
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
@@ -236,7 +236,7 @@ func TestChangePassword(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
 		token := uuid.NewString()
-		h, c, rec := setupHandler("", pStore, tStore)
+		h, c, rec := setupAccountTestHandler("", pStore, tStore)
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
@@ -245,7 +245,7 @@ func TestChangePassword(t *testing.T) {
 		err = tStore.Add(token)
 		assert.NoError(t, err)
 
-		var res routes.FailureResponse
+		var res routes.ErrorResponse
 		err = h.ChangePassword(c)
 		assert.NoError(t, err)
 
@@ -259,7 +259,7 @@ func TestChangePassword(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
 		token := uuid.NewString()
-		h, c, rec := setupHandler(fmt.Sprintf(`{"token":"%s"}`, token), pStore, tStore)
+		h, c, rec := setupAccountTestHandler(fmt.Sprintf(`{"token":"%s"}`, token), pStore, tStore)
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
@@ -268,7 +268,7 @@ func TestChangePassword(t *testing.T) {
 		err = tStore.Add(token)
 		assert.NoError(t, err)
 
-		var res routes.FailureResponse
+		var res routes.ErrorResponse
 		err = h.ChangePassword(c)
 		assert.NoError(t, err)
 
@@ -282,7 +282,7 @@ func TestChangePassword(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
 		token := uuid.NewString()
-		h, c, rec := setupHandler("", pStore, tStore)
+		h, c, rec := setupAccountTestHandler("", pStore, tStore)
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
@@ -292,7 +292,7 @@ func TestChangePassword(t *testing.T) {
 		assert.NoError(t, err)
 		c.Request().Header.Set("x-actual-token", token)
 
-		var res routes.FailureResponse
+		var res routes.ErrorResponse
 		err = h.ChangePassword(c)
 		assert.NoError(t, err)
 
@@ -306,7 +306,7 @@ func TestChangePassword(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
 		token := uuid.NewString()
-		h, c, rec := setupHandler(fmt.Sprintf(`{"token":"%s","password":"password456"}`, token), pStore, tStore)
+		h, c, rec := setupAccountTestHandler(fmt.Sprintf(`{"token":"%s","password":"password456"}`, token), pStore, tStore)
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
@@ -329,7 +329,7 @@ func TestChangePassword(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
 		token := uuid.NewString()
-		h, c, rec := setupHandler(`{"password":"password456"}`, pStore, tStore)
+		h, c, rec := setupAccountTestHandler(`{"password":"password456"}`, pStore, tStore)
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
@@ -355,7 +355,7 @@ func TestValidateUser(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
 		token := uuid.NewString()
-		h, c, rec := setupHandler("", pStore, tStore)
+		h, c, rec := setupAccountTestHandler("", pStore, tStore)
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
@@ -364,7 +364,7 @@ func TestValidateUser(t *testing.T) {
 		err = tStore.Add(token)
 		assert.NoError(t, err)
 
-		var res routes.FailureResponse
+		var res routes.ErrorResponse
 		err = h.ValidateUser(c)
 		assert.NoError(t, err)
 
@@ -378,7 +378,7 @@ func TestValidateUser(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
 		token := uuid.NewString()
-		h, c, rec := setupHandler(fmt.Sprintf(`{"token":"%s"}`, token), pStore, tStore)
+		h, c, rec := setupAccountTestHandler(fmt.Sprintf(`{"token":"%s"}`, token), pStore, tStore)
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
@@ -387,7 +387,7 @@ func TestValidateUser(t *testing.T) {
 		err = tStore.Add(uuid.NewString())
 		assert.NoError(t, err)
 
-		var res routes.FailureResponse
+		var res routes.ErrorResponse
 		err = h.ValidateUser(c)
 		assert.NoError(t, err)
 
@@ -401,7 +401,7 @@ func TestValidateUser(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
 		token := uuid.NewString()
-		h, c, rec := setupHandler("", pStore, tStore)
+		h, c, rec := setupAccountTestHandler("", pStore, tStore)
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
@@ -411,7 +411,7 @@ func TestValidateUser(t *testing.T) {
 		assert.NoError(t, err)
 		c.Request().Header.Set("x-actual-token", uuid.NewString())
 
-		var res routes.FailureResponse
+		var res routes.ErrorResponse
 		err = h.ValidateUser(c)
 		assert.NoError(t, err)
 
@@ -425,7 +425,7 @@ func TestValidateUser(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
 		token := uuid.NewString()
-		h, c, rec := setupHandler(fmt.Sprintf(`{"token":"%s"}`, token), pStore, tStore)
+		h, c, rec := setupAccountTestHandler(fmt.Sprintf(`{"token":"%s"}`, token), pStore, tStore)
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)
@@ -449,7 +449,7 @@ func TestValidateUser(t *testing.T) {
 		pStore := memory.NewPasswordStore()
 		tStore := memory.NewTokenStore()
 		token := uuid.NewString()
-		h, c, rec := setupHandler("", pStore, tStore)
+		h, c, rec := setupAccountTestHandler("", pStore, tStore)
 
 		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), 12)
 		assert.NoError(t, err)

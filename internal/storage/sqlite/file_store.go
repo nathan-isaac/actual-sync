@@ -17,16 +17,35 @@ func NewFileStore(connection *Connection) *FileStore {
 	}
 }
 
-func (fs *FileStore) ForId(id core.FileId, deleted bool) (*core.File, error) {
-	row, err := fs.connection.First("SELECT * FROM files WHERE id = ? AND deleted = ?", id, deleted)
+func (fs *FileStore) Count() (int, error) {
+	row, err := fs.connection.First("SELECT count(*) FROM files")
+
+	if err != nil {
+		return 0, err
+	}
+
+	var count int
+
+	if err = row.Scan(&count); err != nil {
+		return 0, storage.ErrorRecordNotFound
+	}
+
+	return count, nil
+}
+
+func (fs *FileStore) ForId(id core.FileId) (*core.File, error) {
+	row, err := fs.connection.First("SELECT * FROM files WHERE id = ?", id)
 	if err != nil {
 		return nil, err
 	}
 
 	var f core.File
 	var gid sql.NullString
+	var encryptKey sql.NullString
+	var encryptSalt sql.NullString
+	var encryptTest sql.NullString
 
-	if err = row.Scan(&f.FileId, &gid, &f.SyncVersion, &f.EncryptMeta, &f.EncryptKeyId, &f.EncryptSalt, &f.EncryptTest, &f.Deleted, &f.Name); err != nil {
+	if err = row.Scan(&f.FileId, &gid, &f.SyncVersion, &f.EncryptMeta, &encryptKey, &encryptSalt, &encryptTest, &f.Deleted, &f.Name); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, storage.ErrorRecordNotFound
 		}
@@ -34,6 +53,49 @@ func (fs *FileStore) ForId(id core.FileId, deleted bool) (*core.File, error) {
 	}
 	if gid.Valid {
 		f.GroupId = gid.String
+	}
+	if encryptKey.Valid {
+		f.EncryptKeyId = encryptKey.String
+	}
+	if encryptSalt.Valid {
+		f.EncryptSalt = encryptSalt.String
+	}
+	if encryptTest.Valid {
+		f.EncryptTest = encryptTest.String
+	}
+
+	return &f, nil
+}
+
+func (fs *FileStore) ForIdAndDelete(id core.FileId, deleted bool) (*core.File, error) {
+	row, err := fs.connection.First("SELECT * FROM files WHERE id = ? AND deleted = ?", id, deleted)
+	if err != nil {
+		return nil, err
+	}
+
+	var f core.File
+	var gid sql.NullString
+	var encryptKey sql.NullString
+	var encryptSalt sql.NullString
+	var encryptTest sql.NullString
+
+	if err = row.Scan(&f.FileId, &gid, &f.SyncVersion, &f.EncryptMeta, &encryptKey, &encryptSalt, &encryptTest, &f.Deleted, &f.Name); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, storage.ErrorRecordNotFound
+		}
+		return nil, err
+	}
+	if gid.Valid {
+		f.GroupId = gid.String
+	}
+	if encryptKey.Valid {
+		f.EncryptKeyId = encryptKey.String
+	}
+	if encryptSalt.Valid {
+		f.EncryptSalt = encryptSalt.String
+	}
+	if encryptTest.Valid {
+		f.EncryptTest = encryptTest.String
 	}
 
 	return &f, nil
@@ -50,12 +112,24 @@ func (fs *FileStore) All() ([]*core.File, error) {
 	for rows.Next() {
 		var f core.File
 		var gid sql.NullString
+		var encryptKey sql.NullString
+		var encryptSalt sql.NullString
+		var encryptTest sql.NullString
 
-		if err := rows.Scan(&f.FileId, &gid, &f.SyncVersion, &f.EncryptMeta, &f.EncryptKeyId, &f.EncryptSalt, &f.EncryptTest, &f.Deleted, &f.Name); err != nil {
+		if err := rows.Scan(&f.FileId, &gid, &f.SyncVersion, &f.EncryptMeta, &encryptKey, &encryptSalt, &encryptTest, &f.Deleted, &f.Name); err != nil {
 			return nil, err
 		}
 		if gid.Valid {
 			f.GroupId = gid.String
+		}
+		if encryptKey.Valid {
+			f.EncryptKeyId = encryptKey.String
+		}
+		if encryptSalt.Valid {
+			f.EncryptSalt = encryptSalt.String
+		}
+		if encryptTest.Valid {
+			f.EncryptTest = encryptTest.String
 		}
 
 		files = append(files, &f)
@@ -64,8 +138,8 @@ func (fs *FileStore) All() ([]*core.File, error) {
 	return files, nil
 }
 
-func (fs *FileStore) Update(file *core.File) error {
-	rows, _, err := fs.connection.Mutate("UPDATE files SET sync_version = ?, encrypt_meta = ? WHERE id = ?", file.SyncVersion, file.EncryptMeta, file.FileId)
+func (fs *FileStore) Update(FileId string, SyncVersion int16, EncryptMeta string, Name string) error {
+	rows, _, err := fs.connection.Mutate("UPDATE files SET sync_version = ?, encrypt_meta = ?, name = ? WHERE id = ?", SyncVersion, EncryptMeta, Name, FileId)
 	if err != nil {
 		return err
 	} else if rows == 0 {
