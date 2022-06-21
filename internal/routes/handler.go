@@ -15,3 +15,8 @@ type ErrorResponse struct {
 	Status string `json:"status"`
 	Reason string `json:"reason"`
 }
+
+type SuccessResponse struct {
+	Status string      `json:"status"`
+	Data   interface{} `json:"data"`
+}

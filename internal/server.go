@@ -28,6 +28,9 @@ func StartServer(config core.Config, BuildDirectory embed.FS, headless bool) {
 
 	e.Use(middleware.CORS())
 	e.Use(setHeaders)
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: "method=${method}, uri=${uri}, status=${status}\n",
+	}))
 
 	if !headless {
 		e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
@@ -56,6 +59,17 @@ func StartServer(config core.Config, BuildDirectory embed.FS, headless bool) {
 	account.POST("/login", handler.Login)
 	account.POST("/change-password", handler.ChangePassword)
 	account.GET("/validate", handler.ValidateUser)
+
+	sync := e.Group("/sync")
+	sync.POST("/user-create-key", handler.UserCreateKey)
+	sync.POST("/user-get-key", handler.UserGetKey)
+	sync.POST("/reset-user-file", handler.ResetUserFile)
+	sync.POST("/update-user-filename", handler.UpdateUserFileName)
+	sync.GET("/get-user-file-info", handler.UserFileInfo)
+	sync.GET("/list-user-files", handler.ListUserFiles)
+	sync.POST("/upload-user-file", handler.UploadUserFile)
+	sync.GET("/download-user-file", handler.DownloadUserFile)
+	sync.POST("/delete-user-file", handler.DeleteUserFile)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf("%v:%v", config.Hostname, config.Port)))
 }
