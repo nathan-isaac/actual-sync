@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/nathanjisaac/actual-server-go/internal/storage"
+	"github.com/nathanjisaac/actual-server-go/internal/errors"
 	"github.com/nathanjisaac/actual-server-go/internal/storage/sqlite"
 	"github.com/stretchr/testify/assert"
 )
@@ -50,7 +50,7 @@ func TestFileStore_ForId(t *testing.T) {
 
 		_, err := store.ForId("1")
 
-		assert.ErrorIs(t, err, storage.ErrorRecordNotFound)
+		assert.ErrorIs(t, err, errors.StorageErrorRecordNotFound)
 	})
 
 	t.Run("given three rows returns second", func(t *testing.T) {
@@ -86,7 +86,7 @@ func TestFileStore_ForIdAndDelete(t *testing.T) {
 
 		_, err := store.ForIdAndDelete("1", false)
 
-		assert.ErrorIs(t, err, storage.ErrorRecordNotFound)
+		assert.ErrorIs(t, err, errors.StorageErrorRecordNotFound)
 	})
 
 	t.Run("given three rows returns second", func(t *testing.T) {
@@ -162,7 +162,7 @@ func TestFileStore_Update(t *testing.T) {
 
 		err := store.Update("1", 1, "A1B2C3", "Budget1")
 
-		assert.ErrorIs(t, err, storage.ErrorNoRecordUpdated)
+		assert.ErrorIs(t, err, errors.StorageErrorNoRecordUpdated)
 	})
 
 	t.Run("given row with matching id", func(t *testing.T) {
@@ -208,7 +208,7 @@ func TestFileStore_ClearGroup(t *testing.T) {
 
 		err := store.ClearGroup("1")
 
-		assert.ErrorIs(t, err, storage.ErrorNoRecordUpdated)
+		assert.ErrorIs(t, err, errors.StorageErrorNoRecordUpdated)
 	})
 
 	t.Run("given row with matching id", func(t *testing.T) {
@@ -237,7 +237,7 @@ func TestFileStore_Delete(t *testing.T) {
 
 		err := store.Delete("1")
 
-		assert.ErrorIs(t, err, storage.ErrorNoRecordUpdated)
+		assert.ErrorIs(t, err, errors.StorageErrorNoRecordUpdated)
 	})
 
 	t.Run("given row with matching id", func(t *testing.T) {
@@ -266,7 +266,7 @@ func TestFileStore_UpdateName(t *testing.T) {
 
 		err := store.UpdateName("1", "My budget")
 
-		assert.ErrorIs(t, err, storage.ErrorNoRecordUpdated)
+		assert.ErrorIs(t, err, errors.StorageErrorNoRecordUpdated)
 	})
 
 	t.Run("given row with matching id", func(t *testing.T) {
@@ -295,7 +295,7 @@ func TestFileStore_UpdateGroup(t *testing.T) {
 
 		err := store.UpdateGroup("1", "gnew")
 
-		assert.ErrorIs(t, err, storage.ErrorNoRecordUpdated)
+		assert.ErrorIs(t, err, errors.StorageErrorNoRecordUpdated)
 	})
 
 	t.Run("given row with matching id", func(t *testing.T) {
@@ -324,7 +324,7 @@ func TestFileStore_UpdateEncryption(t *testing.T) {
 
 		err := store.UpdateEncryption("1", "saltNew", "keyidNew", "testNew")
 
-		assert.ErrorIs(t, err, storage.ErrorNoRecordUpdated)
+		assert.ErrorIs(t, err, errors.StorageErrorNoRecordUpdated)
 	})
 
 	t.Run("given row with matching id", func(t *testing.T) {

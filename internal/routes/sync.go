@@ -12,8 +12,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/nathanjisaac/actual-server-go/internal/storage"
+	"github.com/nathanjisaac/actual-server-go/internal/errors"
 )
+
+type encryptMetaType struct {
+	KeyId string `json:"keyId"`
+}
 
 type UserCreateKeyRequestBody struct {
 	FileId      string `json:"fileId"`
@@ -83,7 +87,7 @@ func (it *RouteHandler) UserGetKey(c echo.Context) error {
 
 	file, err := it.FileStore.ForId(req.FileId)
 	if err != nil {
-		if err == storage.ErrorRecordNotFound {
+		if err == errors.StorageErrorRecordNotFound {
 			return c.String(http.StatusBadRequest, "file-not-found")
 		}
 		c.Echo().Logger.Error(err)
@@ -118,7 +122,7 @@ func (it *RouteHandler) ResetUserFile(c echo.Context) error {
 
 	err := it.FileStore.ClearGroup(req.FileId)
 	if err != nil {
-		if err == storage.ErrorNoRecordUpdated {
+		if err == errors.StorageErrorNoRecordUpdated {
 			return c.String(http.StatusBadRequest, "User or file not found")
 		}
 		c.Echo().Logger.Error(err)
@@ -152,7 +156,7 @@ func (it *RouteHandler) UpdateUserFileName(c echo.Context) error {
 
 	err := it.FileStore.UpdateName(req.FileId, req.Name)
 	if err != nil {
-		if err == storage.ErrorNoRecordUpdated {
+		if err == errors.StorageErrorNoRecordUpdated {
 			return c.String(http.StatusBadRequest, "User or file not found")
 		}
 		c.Echo().Logger.Error(err)
@@ -161,10 +165,6 @@ func (it *RouteHandler) UpdateUserFileName(c echo.Context) error {
 
 	r := &SuccessResponse{Status: "ok"}
 	return c.JSON(http.StatusOK, r)
-}
-
-type encryptMetaType struct {
-	KeyId string `json:"keyId"`
 }
 
 type UserFileInfoWithMetaResponse struct {
@@ -210,7 +210,7 @@ func (it *RouteHandler) UserFileInfo(c echo.Context) error {
 
 	file, err := it.FileStore.ForIdAndDelete(req.FileId, false)
 	if err != nil {
-		if err == storage.ErrorRecordNotFound {
+		if err == errors.StorageErrorRecordNotFound {
 			return c.JSON(http.StatusBadRequest, ErrorResponse{Status: "error", Reason: "User or file not found"})
 		}
 		c.Echo().Logger.Error(err)
@@ -328,11 +328,11 @@ func (it *RouteHandler) UploadUserFile(c echo.Context) error {
 
 	file, err := it.FileStore.ForId(fileId)
 	fileExists := false
-	if err != nil && err != storage.ErrorRecordNotFound {
+	if err != nil && err != errors.StorageErrorRecordNotFound {
 		c.Echo().Logger.Error(err)
 		return err
 	}
-	if err != storage.ErrorRecordNotFound {
+	if err != errors.StorageErrorRecordNotFound {
 		fileExists = true
 		// The uploading file is part of an old group, so reject
 		// it. All of its internal sync state is invalid because its
@@ -433,7 +433,7 @@ func (it *RouteHandler) DownloadUserFile(c echo.Context) error {
 
 	_, err := it.FileStore.ForIdAndDelete(fileId, false)
 	if err != nil {
-		if err == storage.ErrorRecordNotFound {
+		if err == errors.StorageErrorRecordNotFound {
 			return c.String(http.StatusBadRequest, "User or file not found")
 		}
 		c.Echo().Logger.Error(err)
@@ -477,7 +477,7 @@ func (it *RouteHandler) DeleteUserFile(c echo.Context) error {
 
 	err := it.FileStore.Delete(req.FileId)
 	if err != nil {
-		if err == storage.ErrorNoRecordUpdated {
+		if err == errors.StorageErrorNoRecordUpdated {
 			return c.String(http.StatusBadRequest, "User or file not found")
 		}
 		c.Echo().Logger.Error(err)

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/nathanjisaac/actual-server-go/internal/storage"
+	"github.com/nathanjisaac/actual-server-go/internal/errors"
 )
 
 type TokenStore struct {
@@ -28,7 +28,7 @@ func (a *TokenStore) First() (core.Token, error) {
 
 	if err = row.Scan(&token); err != nil {
 		if err == sql.ErrNoRows {
-			return token, storage.ErrorRecordNotFound
+			return token, errors.StorageErrorRecordNotFound
 		}
 		return token, err
 	}

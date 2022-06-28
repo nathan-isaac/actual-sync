@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/nathanjisaac/actual-server-go/internal/storage"
+	"github.com/nathanjisaac/actual-server-go/internal/errors"
 )
 
 type FileStore struct {
@@ -27,7 +27,7 @@ func (fs *FileStore) Count() (int, error) {
 	var count int
 
 	if err = row.Scan(&count); err != nil {
-		return 0, storage.ErrorRecordNotFound
+		return 0, errors.StorageErrorRecordNotFound
 	}
 
 	return count, nil
@@ -47,7 +47,7 @@ func (fs *FileStore) ForId(id core.FileId) (*core.File, error) {
 
 	if err = row.Scan(&f.FileId, &gid, &f.SyncVersion, &f.EncryptMeta, &encryptKey, &encryptSalt, &encryptTest, &f.Deleted, &f.Name); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, storage.ErrorRecordNotFound
+			return nil, errors.StorageErrorRecordNotFound
 		}
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (fs *FileStore) ForIdAndDelete(id core.FileId, deleted bool) (*core.File, e
 
 	if err = row.Scan(&f.FileId, &gid, &f.SyncVersion, &f.EncryptMeta, &encryptKey, &encryptSalt, &encryptTest, &f.Deleted, &f.Name); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, storage.ErrorRecordNotFound
+			return nil, errors.StorageErrorRecordNotFound
 		}
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func (fs *FileStore) Update(FileId string, SyncVersion int16, EncryptMeta string
 	if err != nil {
 		return err
 	} else if rows == 0 {
-		return storage.ErrorNoRecordUpdated
+		return errors.StorageErrorNoRecordUpdated
 	}
 
 	return nil
@@ -163,7 +163,7 @@ func (fs *FileStore) ClearGroup(id core.FileId) error {
 	if err != nil {
 		return err
 	} else if rows == 0 {
-		return storage.ErrorNoRecordUpdated
+		return errors.StorageErrorNoRecordUpdated
 	}
 
 	return nil
@@ -174,7 +174,7 @@ func (fs *FileStore) Delete(id core.FileId) error {
 	if err != nil {
 		return err
 	} else if rows == 0 {
-		return storage.ErrorNoRecordUpdated
+		return errors.StorageErrorNoRecordUpdated
 	}
 
 	return nil
@@ -185,7 +185,7 @@ func (fs *FileStore) UpdateName(id core.FileId, name string) error {
 	if err != nil {
 		return err
 	} else if rows == 0 {
-		return storage.ErrorNoRecordUpdated
+		return errors.StorageErrorNoRecordUpdated
 	}
 
 	return nil
@@ -196,7 +196,7 @@ func (fs *FileStore) UpdateGroup(id core.FileId, groupId string) error {
 	if err != nil {
 		return err
 	} else if rows == 0 {
-		return storage.ErrorNoRecordUpdated
+		return errors.StorageErrorNoRecordUpdated
 	}
 
 	return nil
@@ -207,7 +207,7 @@ func (fs *FileStore) UpdateEncryption(id core.FileId, salt, keyId, test string) 
 	if err != nil {
 		return err
 	} else if rows == 0 {
-		return storage.ErrorNoRecordUpdated
+		return errors.StorageErrorNoRecordUpdated
 	}
 
 	return nil
