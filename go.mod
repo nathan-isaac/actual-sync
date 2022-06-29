@@ -3,12 +3,19 @@ module github.com/nathanjisaac/actual-server-go
 go 1.18
 
 require (
+	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/labstack/echo/v4 v4.7.2
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.11.0
 	github.com/stretchr/testify v1.7.1
 	google.golang.org/protobuf v1.28.0
 	modernc.org/sqlite v1.17.2
+)
+
+require (
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
 )
 
 require (

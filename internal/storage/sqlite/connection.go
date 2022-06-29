@@ -5,6 +5,9 @@ import (
 	"embed"
 	"fmt"
 
+	"github.com/golang-migrate/migrate/v4"
+	migrateSqlite "github.com/golang-migrate/migrate/v4/database/sqlite"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "modernc.org/sqlite"
 )
 
@@ -12,53 +15,76 @@ type Connection struct {
 	db *sql.DB
 }
 
-//go:embed migrations
-var migrationsDirectory embed.FS
+//go:embed migrations/account/*.sql
+var migrationsAccount embed.FS
+
+//go:embed migrations/message/*.sql
+var migrationsMessage embed.FS
 
 func NewAccountConnection(dataSource string) (*Connection, error) {
 	db, err := sql.Open("sqlite", dataSource)
-
 	if err != nil {
 		return nil, err
 	}
 
+	sourceDriver, err := iofs.New(migrationsAccount, "migrations/account")
+	if err != nil {
+		return nil, err
+	}
+	defer sourceDriver.Close()
+	dbDriver, err := migrateSqlite.WithInstance(db, &migrateSqlite.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, "sqlite", dbDriver)
+	if err != nil {
+		return nil, err
+	}
+
+	// Migrate to latest schema
+	err = m.Up()
+	if err != nil {
+		if err != migrate.ErrNoChange {
+			return nil, err
+		}
+	}
+
 	conn := &Connection{db: db}
-
-	content, err := migrationsDirectory.ReadFile("migrations/account/init.sql")
-
-	if err != nil {
-		return conn, err
-	}
-
-	_, err = conn.Exec(string(content))
-
-	if err != nil {
-		return conn, err
-	}
 
 	return conn, nil
 }
 
 func NewMessageConnection(dataSource string) (*Connection, error) {
 	db, err := sql.Open("sqlite", dataSource)
-
 	if err != nil {
 		return nil, err
 	}
 
+	sourceDriver, err := iofs.New(migrationsMessage, "migrations/message")
+	if err != nil {
+		return nil, err
+	}
+	defer sourceDriver.Close()
+	dbDriver, err := migrateSqlite.WithInstance(db, &migrateSqlite.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, "sqlite", dbDriver)
+	if err != nil {
+		return nil, err
+	}
+
+	// Migrate to latest schema
+	err = m.Up()
+	if err != nil {
+		if err != migrate.ErrNoChange {
+			return nil, err
+		}
+	}
+
 	conn := &Connection{db: db}
-
-	content, err := migrationsDirectory.ReadFile("migrations/message/init.sql")
-
-	if err != nil {
-		return conn, err
-	}
-
-	_, err = conn.Exec(string(content))
-
-	if err != nil {
-		return conn, err
-	}
 
 	return conn, nil
 }
