@@ -1,0 +1,9 @@
+port: 5006
+debug: false
+headless: false
+logs: false
+storage: "sqlite"
+# data-path: "data" # Defaults to $HOME (Exact path depends on OS)
+# sqlite:
+#   server-files: "data/server-files" # Defaults to data-path/actual-sync/server-files/
+#   user-files: "data/user-files" # Defaults to data-path/actual-sync/user-files/

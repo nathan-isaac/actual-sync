@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"embed"
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/nathanjisaac/actual-server-go/internal"
 	"github.com/nathanjisaac/actual-server-go/internal/core"
+	"github.com/nathanjisaac/actual-server-go/internal/storage"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -23,72 +23,69 @@ var serveCmd = &cobra.Command{
 specified configurations along with this command.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		headless := viper.GetBool("headless")
-		production := viper.GetBool("production")
+		logs := viper.GetBool("logs")
+		debug := viper.GetBool("debug")
 		port := viper.GetInt("port")
+		storageType := viper.GetString("storage")
 		dataPath := viper.GetString("data-path")
+		dataPath = filepath.Join(dataPath, "actual-sync")
 
 		if !filepath.IsAbs(dataPath) {
 			path, err := filepath.Abs(dataPath)
-			if err != nil {
-				log.Fatal(err)
-			} else {
-				dataPath = path
-			}
+			cobra.CheckErr(err)
+			dataPath = path
 		}
-		serverFiles := filepath.Join(dataPath, "server-files")
 		userFiles := filepath.Join(dataPath, "user-files")
 
 		fs := afero.NewOsFs()
 
-		err := fs.MkdirAll(serverFiles, os.ModePerm)
+		err := fs.MkdirAll(userFiles, os.ModePerm)
+		cobra.CheckErr(err)
 
-		if err != nil {
-			log.Fatal(err)
+		mode := core.Production
+		if debug {
+			mode = core.Development
 		}
 
-		err = fs.MkdirAll(userFiles, os.ModePerm)
-
-		if err != nil {
-			log.Fatal(err)
+		options := storage.Options{
+			DataPath:       dataPath,
+			ServerDataPath: viper.GetString("sqlite.server-files"),
+			UserDataPath:   viper.GetString("sqlite.user-files"),
 		}
-
-		mode := core.Development
-		if production {
-			mode = core.Production
-		}
-
+		storageConfig := storage.GenerateStorageConfig(storageType, options)
 		config := core.Config{
-			Mode:        mode,
-			Port:        port,
-			Hostname:    "0.0.0.0",
-			ServerFiles: serverFiles,
-			UserFiles:   userFiles,
-			FileSystem:  fs,
+			Mode:          mode,
+			Port:          port,
+			Hostname:      "0.0.0.0",
+			Storage:       core.Sqlite,
+			StorageConfig: storageConfig,
+			UserFiles:     userFiles,
+			FileSystem:    fs,
 		}
 
-		internal.StartServer(config, BuildDirectory, headless)
-
+		internal.StartServer(config, BuildDirectory, headless, logs)
 	},
 }
 
 func init() {
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
+
 	rootCmd.AddCommand(serveCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// serveCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	serveCmd.Flags().BoolP("headless", "l", false, "Runs actual-sync without the web app")
-	serveCmd.Flags().Bool("production", false, "Runs actual-sync in production mode")
+	serveCmd.Flags().Bool("headless", false, "Runs actual-sync without the web app")
+	serveCmd.Flags().Bool("debug", false, "Runs actual-sync in development mode")
 	serveCmd.Flags().IntP("port", "p", 5006, "Runs actual-sync at specified port")
-	serveCmd.Flags().StringP("data-path", "d", "data", "Sets data directory path")
+	serveCmd.Flags().BoolP("logs", "l", false, "Displays server logs")
+	serveCmd.Flags().String("storage", "sqlite", "Sets storage type for actual-sync")
+	serveCmd.Flags().StringP("data-path", "d", home, `Sets configuration & data directory path. 
+Creates 'actual-sync' folder here, if it 
+doesn't exist`)
 
 	viper.BindPFlag("headless", serveCmd.Flags().Lookup("headless"))
-	viper.BindPFlag("production", serveCmd.Flags().Lookup("production"))
+	viper.BindPFlag("logs", serveCmd.Flags().Lookup("logs"))
+	viper.BindPFlag("debug", serveCmd.Flags().Lookup("debug"))
 	viper.BindPFlag("port", serveCmd.Flags().Lookup("port"))
+	viper.BindPFlag("storage", serveCmd.Flags().Lookup("storage"))
 	viper.BindPFlag("data-path", serveCmd.Flags().Lookup("data-path"))
 }

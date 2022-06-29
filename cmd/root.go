@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -42,8 +44,10 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.actual-sync.yaml)")
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
+	desc := fmt.Sprintf("config file (default  '%s/actual-sync/config.yaml')", home)
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", desc)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -56,10 +60,16 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Search config in home directory with name ".actual-sync" (without extension).
-		viper.AddConfigPath(home)
+		dataPath := filepath.Join(home, "actual-sync")
+		if _, err := os.Stat(dataPath); errors.Is(err, os.ErrNotExist) {
+			err := os.MkdirAll(dataPath, os.ModePerm)
+			cobra.CheckErr(err)
+		}
+
+		// Search config in home directory inside "actual-sync" folder with name "config.yaml".
+		viper.AddConfigPath(dataPath)
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".actual-sync")
+		viper.SetConfigName("config.yaml")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match

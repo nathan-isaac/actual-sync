@@ -4,13 +4,12 @@ import (
 	"embed"
 	"fmt"
 	"net/http"
-	"path/filepath"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/nathanjisaac/actual-server-go/internal/core"
 	"github.com/nathanjisaac/actual-server-go/internal/routes"
-	"github.com/nathanjisaac/actual-server-go/internal/storage/sqlite"
+	"github.com/nathanjisaac/actual-server-go/internal/storage"
 )
 
 // Used for `SharedArrayBuffer` to work in client
@@ -22,15 +21,17 @@ func setHeaders(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func StartServer(config core.Config, BuildDirectory embed.FS, headless bool) {
+func StartServer(config core.Config, BuildDirectory embed.FS, headless bool, logs bool) {
 	e := echo.New()
 	e.HideBanner = true
 
 	e.Use(middleware.CORS())
 	e.Use(setHeaders)
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: "method=${method}, uri=${uri}, status=${status}\n",
-	}))
+	if logs {
+		e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+			Format: "method=${method}, uri=${uri}, status=${status}\n",
+		}))
+	}
 
 	if !headless {
 		e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
@@ -40,16 +41,17 @@ func StartServer(config core.Config, BuildDirectory embed.FS, headless bool) {
 		}))
 	}
 
-	conn, err := sqlite.NewAccountConnection(filepath.Join(config.ServerFiles, "account.sqlite"))
+	conn, pStore, tStore, fStore, err := storage.NewAccountStores(config.Storage, config.StorageConfig)
 	if err != nil {
 		e.Logger.Fatal(err)
 	}
+	defer conn.Close()
 
 	handler := routes.RouteHandler{
 		Config:        config,
-		FileStore:     sqlite.NewFileStore(conn),
-		TokenStore:    sqlite.NewTokenStore(conn),
-		PasswordStore: sqlite.NewPasswordStore(conn),
+		FileStore:     fStore,
+		TokenStore:    tStore,
+		PasswordStore: pStore,
 	}
 	e.GET("/mode", handler.GetMode)
 

@@ -28,5 +28,6 @@ node_modules
 
 # Actual
 data/
-[^.]*.yaml
+*.yaml
+!*.example.yaml
 dist/
