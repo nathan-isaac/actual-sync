@@ -111,7 +111,6 @@ func TestMerkle_Insert(t *testing.T) {
 		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].Children["0"].Children["0"].Hash)
 		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].Children["0"].Children["0"].Children["0"].Hash)
 		assert.Equal(t, 0, len(merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].Children["0"].Children["0"].Children["0"].Children))
-
 	})
 }
 

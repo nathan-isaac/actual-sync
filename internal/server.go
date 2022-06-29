@@ -63,6 +63,7 @@ func StartServer(config core.Config, BuildDirectory embed.FS, headless bool, log
 	account.GET("/validate", handler.ValidateUser)
 
 	sync := e.Group("/sync")
+	sync.POST("/sync", handler.SyncFile)
 	sync.POST("/user-create-key", handler.UserCreateKey)
 	sync.POST("/user-get-key", handler.UserGetKey)
 	sync.POST("/reset-user-file", handler.ResetUserFile)

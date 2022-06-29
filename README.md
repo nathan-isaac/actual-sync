@@ -59,6 +59,8 @@ actual-sync serve [flags]
       --config string   config file (default is /actual-sync/config.yaml relative to data-path)
 ```
 
+Check out an example configuration [here](config.example.yaml).
+
 ## Development
 
 ### Dependencies
