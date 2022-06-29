@@ -72,48 +72,52 @@ func (trie *Merkle) getKeys() []string {
 
 func (trie *Merkle) insertKey(key string, hash uint32) crdt.Merkle {
 	if len(key) == 0 {
-		return trie
+		return nil
 	}
 
 	c := string(key[0])
-	cNode := &Merkle{}
+
+	cNode := NewMerkle(0)
 	n := trie.Children[c]
 	nHash := -1
+	var nInserted *Merkle
+
 	if n != nil {
 		nHash = int(n.Hash)
-		nInserted := n.insertKey(key[1:], hash).(*Merkle)
 
-		cNode.Hash = n.Hash
+		(*cNode).Hash = (*n).Hash
 		for k := range n.Children {
-			cNode.Children[k] = n.Children[k]
-		}
-
-		if nInserted != nil {
-			if nInserted.Hash != 0 {
-				cNode.Hash = nInserted.Hash
-			}
-			for k := range nInserted.Children {
-				if nInserted.Children[k] != nil {
-					cNode.Children[k] = nInserted.Children[k]
-				}
+			if n.Children[k] != nil {
+				cNode.Children[k] = n.Children[k]
 			}
 		}
+	} else {
+		n = NewMerkle(0)
+	}
 
-		if hash != 0 {
-			cNode.Hash = hash
+	if len(key) > 1 {
+		nInserted = n.insertKey(key[1:], hash).(*Merkle)
+	}
+	if nInserted != nil {
+		if nInserted.Hash != 0 {
+			cNode.Hash = nInserted.Hash
+		}
+		for k := range nInserted.Children {
+			if nInserted.Children[k] != nil {
+				cNode.Children[k] = nInserted.Children[k]
+			}
 		}
 	}
+
 	if trie.Children == nil {
 		trie.Children = map[string]*Merkle{}
 	}
-	if len(cNode.Children) != 0 {
-		trie.Children[c] = cNode
-	} else {
-		trie.Children[c] = nil
-	}
 	if nHash != -1 {
-		trie.Hash = uint32(nHash) ^ hash
+		cNode.Hash = uint32(nHash) ^ hash
+	} else {
+		cNode.Hash = hash
 	}
+	trie.Children[c] = cNode
 	return trie
 }
 
@@ -131,10 +135,13 @@ func (trie *Merkle) Prune() crdt.Merkle {
 	if trie == nil {
 		return nil
 	}
+	if trie.Children == nil {
+		trie.Children = map[string]*Merkle{}
+	}
 
 	// Checking if empty
-	if trie.Children == nil {
-		return NewMerkle(trie.Hash)
+	if len(trie.Children) == 0 && trie.Hash == 0 {
+		return trie
 	}
 
 	keys := trie.getKeys()
@@ -142,10 +149,10 @@ func (trie *Merkle) Prune() crdt.Merkle {
 
 	sliceRange := len(keys) - n
 	newTrie := NewMerkle(trie.Hash)
-	for k := range keys[int(math.Max(0, float64(sliceRange))):] {
-		node := trie.Children[keys[k]].Prune()
+	for _, k := range keys[int(math.Max(0, float64(sliceRange))):] {
+		node := trie.Children[k].Prune()
 		if node != nil {
-			newTrie.Children[keys[k]] = node.(*Merkle)
+			newTrie.Children[k] = node.(*Merkle)
 		}
 	}
 	return newTrie

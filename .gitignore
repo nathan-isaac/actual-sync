@@ -26,6 +26,9 @@ go.work
 # Node
 node_modules
 
+#VScode
+.vscode/*
+
 # Actual
 data/
 *.yaml
