@@ -1,11 +1,11 @@
 package timestamp
 
 import (
-	"errors"
 	"strconv"
 	"strings"
 	"time"
 
+	internal_errors "github.com/nathanjisaac/actual-server-go/internal/errors"
 	"github.com/spaolacci/murmur3"
 )
 
@@ -36,7 +36,7 @@ func ParseTimestamp(str string) (*Timestamp, error) {
 		node := parts[4]
 		return &Timestamp{millis: millis, counter: counter, node: node}, nil
 	}
-	return nil, errors.New("unable to parse timestamp")
+	return nil, internal_errors.ErrTimestampUnableToParse
 }
 
 func (ts *Timestamp) ToString() string {

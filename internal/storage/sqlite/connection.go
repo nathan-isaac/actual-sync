@@ -3,12 +3,13 @@ package sqlite
 import (
 	"database/sql"
 	"embed"
+	"errors"
 	"fmt"
 
 	"github.com/golang-migrate/migrate/v4"
 	migrateSqlite "github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	_ "modernc.org/sqlite"
+	_ "modernc.org/sqlite" // Using blank-import due to requirement by package
 )
 
 type Connection struct {
@@ -45,7 +46,7 @@ func NewAccountConnection(dataSource string) (*Connection, error) {
 	// Migrate to latest schema
 	err = m.Up()
 	if err != nil {
-		if err != migrate.ErrNoChange {
+		if !errors.Is(err, migrate.ErrNoChange) {
 			return nil, err
 		}
 	}
@@ -79,7 +80,7 @@ func NewMessageConnection(dataSource string) (*Connection, error) {
 	// Migrate to latest schema
 	err = m.Up()
 	if err != nil {
-		if err != migrate.ErrNoChange {
+		if !errors.Is(err, migrate.ErrNoChange) {
 			return nil, err
 		}
 	}
@@ -140,12 +141,12 @@ func (it *Connection) Mutate(sqlString string, params ...any) (int64, int64, err
 		return 0, 0, err
 	}
 
-	lastId, err := result.LastInsertId()
+	lastID, err := result.LastInsertId()
 	if err != nil {
 		return 0, 0, err
 	}
 
-	return rows, lastId, nil
+	return rows, lastID, nil
 }
 
 func (it *Connection) Transaction(fn func(*sql.Tx) error) error {
@@ -157,7 +158,7 @@ func (it *Connection) Transaction(fn func(*sql.Tx) error) error {
 	err = fn(tx)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return fmt.Errorf("DB transaction FAILURE: unable to rollback: %v", rollbackErr)
+			return fmt.Errorf("DB transaction FAILURE: unable to rollback: %w", rollbackErr)
 		}
 		return err
 	}

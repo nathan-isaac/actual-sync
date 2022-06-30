@@ -12,11 +12,11 @@ type MessageStore interface {
 }
 
 type MerkleMessage struct {
-	MerkleId string
+	MerkleID string
 	Merkle   string
 }
 
 type MerkleStore interface {
 	Add(message MerkleMessage) error
-	GetForGroup(groupId string) (*MerkleMessage, error)
+	GetForGroup(groupID string) (*MerkleMessage, error)
 }

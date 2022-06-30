@@ -2,7 +2,6 @@ package merkle_test
 
 import (
 	"encoding/json"
-	"errors"
 	"strconv"
 	"strings"
 	"testing"
@@ -11,14 +10,19 @@ import (
 	"github.com/nathanjisaac/actual-server-go/internal/core/crdt"
 	"github.com/nathanjisaac/actual-server-go/internal/core/crdt/merkle"
 	"github.com/nathanjisaac/actual-server-go/internal/core/crdt/timestamp"
+	internal_errors "github.com/nathanjisaac/actual-server-go/internal/errors"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMerkle_NewFromMap(t *testing.T) {
 	t.Run("parse json string", func(t *testing.T) {
-		jsonString := `{"1":{"2":{"1":{"0":{"1":{"0":{"0":{"2":{"0":{"1":{"1":{"0":{"2":{"2":{"0":{"0":{"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},
-		"1":{"0":{"1":{"0":{"2":{"0":{"0":{"0":{"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":565800531},"hash":565800531},"hash":565800531},
-		"hash":565800531},"hash":565800531},"hash":565800531},"hash":565800531},"hash":565800531},"hash":565800531}`
+		jsonString := `{"1":{"2":{"1":{"0":{"1":{"0":{"0":{"2":{"0":{"1":{"1":{"0":{"2":{"2":{"0":{"0":` +
+			`{"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},` +
+			`"hash":1983295247},"hash":1983295247},"hash":1983295247},"1":{"0":{"1":{"0":{"2":{"0":{"0":{"0":` +
+			`{"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},` +
+			`"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":565800531},"hash":565800531},` +
+			`"hash":565800531},"hash":565800531},"hash":565800531},"hash":565800531},"hash":565800531},` +
+			`"hash":565800531},"hash":565800531}`
 		var merklemap map[string]interface{}
 		err := json.Unmarshal([]byte(jsonString), &merklemap)
 		assert.NoError(t, err)
@@ -29,36 +33,74 @@ func TestMerkle_NewFromMap(t *testing.T) {
 		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Hash)
 		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Hash)
 		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Hash)
-		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Hash)
-		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Hash)
-		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Hash)
-		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Hash)
+		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Hash)
+		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Hash)
+		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Hash)
+		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Hash)
 
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Children["2"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Children["2"].Children["2"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Children["2"].Children["2"].Children["0"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Children["2"].Children["2"].Children["0"].Children["0"].Hash)
-		assert.Equal(t, 0, len(merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Children["2"].Children["2"].Children["0"].Children["0"].Children))
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].
+			Children["2"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].
+			Children["2"].Children["2"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].
+			Children["2"].Children["2"].Children["0"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].
+			Children["2"].Children["2"].Children["0"].Children["0"].Hash)
+		assert.Equal(t, 0, len(merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].
+			Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Children["2"].
+			Children["2"].Children["0"].Children["0"].Children))
 
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].Children["0"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].Children["0"].Children["0"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].Children["0"].Children["0"].Children["0"].Hash)
-		assert.Equal(t, 0, len(merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].Children["0"].Children["0"].Children["0"].Children))
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].
+			Children["2"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].
+			Children["2"].Children["0"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].
+			Children["2"].Children["0"].Children["0"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].
+			Children["2"].Children["0"].Children["0"].Children["0"].Hash)
+		assert.Equal(t, 0, len(merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].
+			Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].
+			Children["0"].Children["0"].Children["0"].Children))
 	})
 }
 
 func TestMerkle_ToJSONString(t *testing.T) {
 	t.Run("return json strung from merkle struct", func(t *testing.T) {
-		jsonString := `{"1":{"2":{"1":{"0":{"1":{"0":{"0":{"2":{"0":{"1":{"1":{"0":{"2":{"2":{"0":{"0":{"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},"1":{"0":{"1":{"0":{"2":{"0":{"0":{"0":{"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":565800531},"hash":565800531},"hash":565800531},"hash":565800531},"hash":565800531},"hash":565800531},"hash":565800531},"hash":565800531},"hash":565800531}`
+		jsonString := `{"1":{"2":{"1":{"0":{"1":{"0":{"0":{"2":{"0":{"1":{"1":{"0":{"2":{"2":{"0":{"0":` +
+			`{"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},"hash":1983295247},` +
+			`"hash":1983295247},"hash":1983295247},"hash":1983295247},"1":{"0":{"1":{"0":{"2":{"0":{"0":{"0":` +
+			`{"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":1469038940},` +
+			`"hash":1469038940},"hash":1469038940},"hash":1469038940},"hash":565800531},"hash":565800531},` +
+			`"hash":565800531},"hash":565800531},"hash":565800531},"hash":565800531},"hash":565800531},` +
+			`"hash":565800531},"hash":565800531}`
 		var merklemap map[string]interface{}
 		err := json.Unmarshal([]byte(jsonString), &merklemap)
 		assert.NoError(t, err)
@@ -87,30 +129,62 @@ func TestMerkle_Insert(t *testing.T) {
 		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Hash)
 		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Hash)
 		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Hash)
-		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Hash)
-		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Hash)
-		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Hash)
-		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Hash)
+		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Hash)
+		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Hash)
+		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Hash)
+		assert.Equal(t, uint32(565800531), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Hash)
 
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Children["2"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Children["2"].Children["2"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Children["2"].Children["2"].Children["0"].Hash)
-		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Children["2"].Children["2"].Children["0"].Children["0"].Hash)
-		assert.Equal(t, 0, len(merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Children["2"].Children["2"].Children["0"].Children["0"].Children))
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].
+			Children["2"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].
+			Children["2"].Children["2"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].
+			Children["2"].Children["2"].Children["0"].Hash)
+		assert.Equal(t, uint32(1983295247), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].
+			Children["2"].Children["2"].Children["0"].Children["0"].Hash)
+		assert.Equal(t, 0, len(merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].
+			Children["0"].Children["0"].Children["2"].Children["0"].Children["1"].Children["1"].Children["0"].Children["2"].
+			Children["2"].Children["0"].Children["0"].Children))
 
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].Children["0"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].Children["0"].Children["0"].Hash)
-		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].Children["0"].Children["0"].Children["0"].Hash)
-		assert.Equal(t, 0, len(merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].Children["0"].Children["0"].Children["0"].Children))
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].
+			Children["2"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].
+			Children["2"].Children["0"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].
+			Children["2"].Children["0"].Children["0"].Hash)
+		assert.Equal(t, uint32(1469038940), merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].
+			Children["1"].Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].
+			Children["2"].Children["0"].Children["0"].Children["0"].Hash)
+		assert.Equal(t, 0, len(merklestruct.Children["1"].Children["2"].Children["1"].Children["0"].Children["1"].
+			Children["0"].Children["0"].Children["2"].Children["1"].Children["0"].Children["1"].Children["0"].Children["2"].
+			Children["0"].Children["0"].Children["0"].Children))
 	})
 }
 
@@ -156,7 +230,7 @@ func parseTimestampStub(str string, hash uint32) (*testStubTimestamp, error) {
 		node := parts[4]
 		return &testStubTimestamp{millis: millis, counter: counter, node: node, hash: hash}, nil
 	}
-	return nil, errors.New("unable to parse timestamp")
+	return nil, internal_errors.ErrTimestampUnableToParse
 }
 
 func TestMerkle_Prune(t *testing.T) {
@@ -203,15 +277,31 @@ func TestMerkle_Prune(t *testing.T) {
 		for _, ts := range times {
 			merklestruct.Insert(ts)
 		}
-		jsonString := `{"1":{"2":{"1":{"0":{"0":{"2":{"2":{"2":{"1":{"2":{"2":{"0":{"0":{"1":{"2":{"0":{"hash":1000},"hash":1000},"hash":1000},"2":{"2":{"0":{"hash":1100},"hash":1100},"hash":1100},"hash":1956},"1":{"0":{"2":{"0":{"hash":1200},"hash":1200},"hash":1200},"1":{"2":{"0":{"hash":1300},"hash":1300},"hash":1300},"2":{"2":{"0":{"hash":1400},"hash":1400},"hash":1400},"hash":1244},"2":{"0":{"2":{"0":{"hash":1500},"hash":1500},"hash":1500},"1":{"2":{"0":{"hash":1600},"hash":1600},"hash":1600},"2":{"2":{"0":{"hash":1700},"hash":1700},"hash":1700},"hash":1336},"hash":1600},"1":{"0":{"0":{"1":{"1":{"hash":1800},"hash":1800},"hash":1800},"1":{"1":{"1":{"hash":1900},"hash":1900},"hash":1900},"2":{"1":{"1":{"hash":2000},"hash":2000},"hash":2000},"hash":1972},"1":{"0":{"1":{"1":{"hash":2100},"hash":2100},"hash":2100},"hash":2100},"hash":3968},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496}`
+		jsonString := `{"1":{"2":{"1":{"0":{"0":{"2":{"2":{"2":{"1":{"2":{"2":{"0":{"0":{"1":{"2":{"0":{"hash":1000},` +
+			`"hash":1000},"hash":1000},"2":{"2":{"0":{"hash":1100},"hash":1100},"hash":1100},"hash":1956},"1":{"0":` +
+			`{"2":{"0":{"hash":1200},"hash":1200},"hash":1200},"1":{"2":{"0":{"hash":1300},"hash":1300},"hash":1300},` +
+			`"2":{"2":{"0":{"hash":1400},"hash":1400},"hash":1400},"hash":1244},"2":{"0":{"2":{"0":{"hash":1500},"hash":1500},` +
+			`"hash":1500},"1":{"2":{"0":{"hash":1600},"hash":1600},"hash":1600},"2":{"2":{"0":{"hash":1700},"hash":1700},` +
+			`"hash":1700},"hash":1336},"hash":1600},"1":{"0":{"0":{"1":{"1":{"hash":1800},"hash":1800},"hash":1800},` +
+			`"1":{"1":{"1":{"hash":1900},"hash":1900},"hash":1900},"2":{"1":{"1":{"hash":2000},"hash":2000},"hash":2000},` +
+			`"hash":1972},"1":{"0":{"1":{"1":{"hash":2100},"hash":2100},"hash":2100},"hash":2100},"hash":3968},"hash":2496},` +
+			`"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},` +
+			`"hash":2496},"hash":2496},"hash":2496}`
 		jsonOutput, err := merklestruct.ToJSONString()
 		assert.NoError(t, err)
 
 		assert.Equal(t, uint32(2496), merklestruct.Hash)
 		assert.Equal(t, jsonString, jsonOutput)
 
-		pruned := merklestruct.Prune().(*merkle.Merkle)
-		jsonString = `{"1":{"2":{"1":{"0":{"0":{"2":{"2":{"2":{"1":{"2":{"2":{"0":{"1":{"1":{"2":{"0":{"hash":1300},"hash":1300},"hash":1300},"2":{"2":{"0":{"hash":1400},"hash":1400},"hash":1400},"hash":1244},"2":{"1":{"2":{"0":{"hash":1600},"hash":1600},"hash":1600},"2":{"2":{"0":{"hash":1700},"hash":1700},"hash":1700},"hash":1336},"hash":1600},"1":{"0":{"1":{"1":{"1":{"hash":1900},"hash":1900},"hash":1900},"2":{"1":{"1":{"hash":2000},"hash":2000},"hash":2000},"hash":1972},"1":{"0":{"1":{"1":{"hash":2100},"hash":2100},"hash":2100},"hash":2100},"hash":3968},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496}`
+		pruned, ok := merklestruct.Prune().(*merkle.Merkle)
+		assert.Equal(t, true, ok)
+		jsonString = `{"1":{"2":{"1":{"0":{"0":{"2":{"2":{"2":{"1":{"2":{"2":{"0":{"1":{"1":{"2":{"0":{"hash":1300},` +
+			`"hash":1300},"hash":1300},"2":{"2":{"0":{"hash":1400},"hash":1400},"hash":1400},"hash":1244},"2":{"1":` +
+			`{"2":{"0":{"hash":1600},"hash":1600},"hash":1600},"2":{"2":{"0":{"hash":1700},"hash":1700},"hash":1700},` +
+			`"hash":1336},"hash":1600},"1":{"0":{"1":{"1":{"1":{"hash":1900},"hash":1900},"hash":1900},"2":{"1":{"1":` +
+			`{"hash":2000},"hash":2000},"hash":2000},"hash":1972},"1":{"0":{"1":{"1":{"hash":2100},"hash":2100},"hash":2100},` +
+			`"hash":2100},"hash":3968},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},` +
+			`"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496},"hash":2496}`
 		jsonOutput, err = pruned.ToJSONString()
 		assert.NoError(t, err)
 

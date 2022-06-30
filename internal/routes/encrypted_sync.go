@@ -6,8 +6,14 @@ import (
 	"github.com/nathanjisaac/actual-server-go/internal/storage"
 )
 
-func encryptedSync(since string, messages []*syncpb.MessageEnvelope, fileId core.FileId, storageType core.StorageType, storageConfig core.StorageConfig) (string, []*syncpb.MessageEnvelope, error) {
-	db, _, msgStore, err := storage.NewGroupStores(storageType, storageConfig, fileId)
+func encryptedSync(
+	since string,
+	messages []*syncpb.MessageEnvelope,
+	fileID core.FileID,
+	storageType core.StorageType,
+	storageConfig core.StorageConfig,
+) (string, []*syncpb.MessageEnvelope, error) {
+	db, _, msgStore, err := storage.NewGroupStores(storageType, storageConfig, fileID)
 	if err != nil {
 		return "", nil, err
 	}
@@ -19,9 +25,13 @@ func encryptedSync(since string, messages []*syncpb.MessageEnvelope, fileId core
 	if err != nil {
 		return "", nil, err
 	}
-	var pbNewMessages []*syncpb.MessageEnvelope
-	for _, msg := range newMessages {
-		pbNewMessages = append(pbNewMessages, &syncpb.MessageEnvelope{Timestamp: msg.Timestamp, IsEncrypted: msg.IsEncrypted, Content: msg.Content})
+	pbNewMessages := make([]*syncpb.MessageEnvelope, len(newMessages))
+	for i, msg := range newMessages {
+		pbNewMessages[i] = &syncpb.MessageEnvelope{
+			Timestamp:   msg.Timestamp,
+			IsEncrypted: msg.IsEncrypted,
+			Content:     msg.Content,
+		}
 	}
 
 	trie, err := storage.AddNewMessagesTransaction(storageType, db, messages)

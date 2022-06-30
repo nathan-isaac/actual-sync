@@ -16,11 +16,10 @@ func TestGetMode(t *testing.T) {
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(""))
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
 
 	h := &routes.RouteHandler{Config: core.Config{Mode: core.Development}}
 
-	if assert.NoError(t, h.GetMode(c)) {
+	if c := e.NewContext(req, rec); assert.NoError(t, h.GetMode(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, "development", rec.Body.String())
 	}

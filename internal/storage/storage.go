@@ -24,21 +24,17 @@ func GenerateStorageConfig(storage string, options Options) core.StorageConfig {
 	case string(core.Sqlite):
 		if options.ServerDataPath == "" {
 			options.ServerDataPath = filepath.Join(options.DataPath, "server-files")
-		} else {
-			if !filepath.IsAbs(options.ServerDataPath) {
-				path, err := filepath.Abs(options.ServerDataPath)
-				cobra.CheckErr(err)
-				options.ServerDataPath = path
-			}
+		} else if !filepath.IsAbs(options.ServerDataPath) {
+			path, err := filepath.Abs(options.ServerDataPath)
+			cobra.CheckErr(err)
+			options.ServerDataPath = path
 		}
 		if options.UserDataPath == "" {
 			options.UserDataPath = filepath.Join(options.DataPath, "user-files")
-		} else {
-			if !filepath.IsAbs(options.UserDataPath) {
-				path, err := filepath.Abs(options.UserDataPath)
-				cobra.CheckErr(err)
-				options.UserDataPath = path
-			}
+		} else if !filepath.IsAbs(options.UserDataPath) {
+			path, err := filepath.Abs(options.UserDataPath)
+			cobra.CheckErr(err)
+			options.UserDataPath = path
 		}
 
 		fs := afero.NewOsFs()
@@ -58,7 +54,13 @@ func GenerateStorageConfig(storage string, options Options) core.StorageConfig {
 	return nil
 }
 
-func NewAccountStores(storageType core.StorageType, config core.StorageConfig) (core.Connection, core.PasswordStore, core.TokenStore, core.FileStore, error) {
+func NewAccountStores(storageType core.StorageType, config core.StorageConfig) (
+	core.Connection,
+	core.PasswordStore,
+	core.TokenStore,
+	core.FileStore,
+	error,
+) {
 	switch storageType {
 	case core.Sqlite:
 		return sqlite.NewAccountStores(filepath.Join(config.(sqlite.StorageConfig).ServerData, "account.sqlite"))
@@ -68,8 +70,13 @@ func NewAccountStores(storageType core.StorageType, config core.StorageConfig) (
 	}
 }
 
-func NewGroupStores(storageType core.StorageType, config core.StorageConfig, fileId core.FileId) (core.Connection, core.MerkleStore, core.MessageStore, error) {
-	fileName := fmt.Sprintf("%s.sqlite", fileId)
+func NewGroupStores(storageType core.StorageType, config core.StorageConfig, fileID core.FileID) (
+	core.Connection,
+	core.MerkleStore,
+	core.MessageStore,
+	error,
+) {
+	fileName := fmt.Sprintf("%s.sqlite", fileID)
 	switch storageType {
 	case core.Sqlite:
 		return sqlite.NewGroupStores(filepath.Join(config.(sqlite.StorageConfig).UserData, fileName))
@@ -79,7 +86,11 @@ func NewGroupStores(storageType core.StorageType, config core.StorageConfig, fil
 	}
 }
 
-func AddNewMessagesTransaction(storageType core.StorageType, db core.Connection, messages []*syncpb.MessageEnvelope) (crdt.Merkle, error) {
+func AddNewMessagesTransaction(
+	storageType core.StorageType,
+	db core.Connection,
+	messages []*syncpb.MessageEnvelope,
+) (crdt.Merkle, error) {
 	switch storageType {
 	case core.Sqlite:
 		return sqlite.AddNewMessagesTransaction(db.(*sqlite.Connection), messages)

@@ -73,8 +73,18 @@ func TestMessageStore_GetSince(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(messages))
-		assert.Equal(t, &core.BinaryMessage{Timestamp: ts1.ToString(), IsEncrypted: true, Content: []byte{11, 12, 13}}, messages[1])
-		assert.Equal(t, &core.BinaryMessage{Timestamp: ts2.ToString(), IsEncrypted: true, Content: []byte{1, 25, 17}}, messages[0])
+		assert.Equal(t, &core.BinaryMessage{
+			Timestamp:   ts1.ToString(),
+			IsEncrypted: true,
+			Content:     []byte{11, 12, 13}},
+			messages[1],
+		)
+		assert.Equal(t, &core.BinaryMessage{
+			Timestamp:   ts2.ToString(),
+			IsEncrypted: true,
+			Content:     []byte{1, 25, 17}},
+			messages[0],
+		)
 	})
 
 	t.Run("given 2 rows and get rows since inbetween", func(t *testing.T) {
@@ -100,7 +110,12 @@ func TestMessageStore_GetSince(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(messages))
-		assert.Equal(t, &core.BinaryMessage{Timestamp: ts1.ToString(), IsEncrypted: true, Content: []byte{11, 12, 13}}, messages[0])
+		assert.Equal(t, &core.BinaryMessage{
+			Timestamp:   ts1.ToString(),
+			IsEncrypted: true,
+			Content:     []byte{11, 12, 13}},
+			messages[0],
+		)
 	})
 
 	t.Run("given 2 rows and returns no rows", func(t *testing.T) {

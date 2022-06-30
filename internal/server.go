@@ -21,7 +21,7 @@ func setHeaders(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func StartServer(config core.Config, BuildDirectory embed.FS, headless bool, logs bool) {
+func StartServer(config core.Config, buildDirectory embed.FS, headless bool, logs bool) {
 	e := echo.New()
 	e.HideBanner = true
 
@@ -37,7 +37,7 @@ func StartServer(config core.Config, BuildDirectory embed.FS, headless bool, log
 		e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
 			Root:       "node_modules/@actual-app/web/build",
 			HTML5:      true,
-			Filesystem: http.FS(BuildDirectory),
+			Filesystem: http.FS(buildDirectory),
 		}))
 	}
 

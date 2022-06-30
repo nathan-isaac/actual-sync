@@ -85,7 +85,7 @@ func (trie *Merkle) insertKey(key string, hash uint32) crdt.Merkle {
 	if n != nil {
 		nHash = int(n.Hash)
 
-		(*cNode).Hash = (*n).Hash
+		cNode.Hash = n.Hash
 		for k := range n.Children {
 			if n.Children[k] != nil {
 				cNode.Children[k] = n.Children[k]
@@ -125,7 +125,7 @@ func (trie *Merkle) Insert(timestamp crdt.Timestamp) {
 	hash := timestamp.Hash()
 	key := strconv.FormatInt((timestamp.GetMillis() / (1000 * 60)), 3)
 
-	trie.Hash = trie.Hash ^ hash
+	trie.Hash ^= hash
 	trie.insertKey(key, hash)
 }
 

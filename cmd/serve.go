@@ -82,10 +82,16 @@ func init() {
 Creates 'actual-sync' folder here, if it 
 doesn't exist`)
 
-	viper.BindPFlag("headless", serveCmd.Flags().Lookup("headless"))
-	viper.BindPFlag("logs", serveCmd.Flags().Lookup("logs"))
-	viper.BindPFlag("debug", serveCmd.Flags().Lookup("debug"))
-	viper.BindPFlag("port", serveCmd.Flags().Lookup("port"))
-	viper.BindPFlag("storage", serveCmd.Flags().Lookup("storage"))
-	viper.BindPFlag("data-path", serveCmd.Flags().Lookup("data-path"))
+	err = viper.BindPFlag("headless", serveCmd.Flags().Lookup("headless"))
+	cobra.CheckErr(err)
+	err = viper.BindPFlag("logs", serveCmd.Flags().Lookup("logs"))
+	cobra.CheckErr(err)
+	err = viper.BindPFlag("debug", serveCmd.Flags().Lookup("debug"))
+	cobra.CheckErr(err)
+	err = viper.BindPFlag("port", serveCmd.Flags().Lookup("port"))
+	cobra.CheckErr(err)
+	err = viper.BindPFlag("storage", serveCmd.Flags().Lookup("storage"))
+	cobra.CheckErr(err)
+	err = viper.BindPFlag("data-path", serveCmd.Flags().Lookup("data-path"))
+	cobra.CheckErr(err)
 }

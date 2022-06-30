@@ -15,7 +15,12 @@ func NewMessageStore(connection *Connection) *MessageStore {
 }
 
 func (ms *MessageStore) Add(message core.BinaryMessage) (bool, error) {
-	rowsAffected, _, err := ms.connection.Mutate("INSERT OR IGNORE INTO messages_binary (timestamp, is_encrypted, content) VALUES (?, ?, ?)", message.Timestamp, message.IsEncrypted, message.Content)
+	rowsAffected, _, err := ms.connection.Mutate(
+		"INSERT OR IGNORE INTO messages_binary (timestamp, is_encrypted, content) VALUES (?, ?, ?)",
+		message.Timestamp,
+		message.IsEncrypted,
+		message.Content,
+	)
 	if err != nil {
 		return false, err
 	}

@@ -2,9 +2,10 @@ package sqlite
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/nathanjisaac/actual-server-go/internal/errors"
+	internal_errors "github.com/nathanjisaac/actual-server-go/internal/errors"
 )
 
 type MerkleStore struct {
@@ -18,23 +19,28 @@ func NewMerkleStore(connection *Connection) *MerkleStore {
 }
 
 func (ms *MerkleStore) Add(message core.MerkleMessage) error {
-	_, _, err := ms.connection.Mutate("INSERT INTO messages_merkles (id, merkle) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET merkle = ?", message.MerkleId, message.Merkle, message.Merkle)
+	_, _, err := ms.connection.Mutate(
+		"INSERT INTO messages_merkles (id, merkle) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET merkle = ?",
+		message.MerkleID,
+		message.Merkle,
+		message.Merkle,
+	)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (ms *MerkleStore) GetForGroup(groupId string) (*core.MerkleMessage, error) {
-	row, err := ms.connection.First("SELECT * FROM messages_merkles WHERE id = ?", groupId)
+func (ms *MerkleStore) GetForGroup(groupID string) (*core.MerkleMessage, error) {
+	row, err := ms.connection.First("SELECT * FROM messages_merkles WHERE id = ?", groupID)
 	if err != nil {
 		return nil, err
 	}
 
 	var msg core.MerkleMessage
-	if err = row.Scan(&msg.MerkleId, &msg.Merkle); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errors.StorageErrorRecordNotFound
+	if err = row.Scan(&msg.MerkleID, &msg.Merkle); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, internal_errors.ErrStorageRecordNotFound
 		}
 		return nil, err
 	}

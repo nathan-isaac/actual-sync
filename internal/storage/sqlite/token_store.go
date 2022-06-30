@@ -2,9 +2,10 @@ package sqlite
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/nathanjisaac/actual-server-go/internal/errors"
+	internal_errors "github.com/nathanjisaac/actual-server-go/internal/errors"
 )
 
 type TokenStore struct {
@@ -27,8 +28,8 @@ func (a *TokenStore) First() (core.Token, error) {
 	}
 
 	if err = row.Scan(&token); err != nil {
-		if err == sql.ErrNoRows {
-			return token, errors.StorageErrorRecordNotFound
+		if errors.Is(err, sql.ErrNoRows) {
+			return token, internal_errors.ErrStorageRecordNotFound
 		}
 		return token, err
 	}
