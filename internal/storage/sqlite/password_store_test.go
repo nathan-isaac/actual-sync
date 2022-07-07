@@ -1,9 +1,10 @@
+//nolint: dupl // Disabling dupl for tests. It detects similar testcases for different tests.
 package sqlite_test
 
 import (
 	"testing"
 
-	"github.com/nathanjisaac/actual-server-go/internal/errors"
+	internal_errors "github.com/nathanjisaac/actual-server-go/internal/errors"
 	"github.com/nathanjisaac/actual-server-go/internal/storage/sqlite"
 	"github.com/stretchr/testify/assert"
 )
@@ -49,7 +50,7 @@ func TestPasswordStore_First(t *testing.T) {
 
 		_, err := store.First()
 
-		assert.ErrorIs(t, err, errors.StorageErrorRecordNotFound)
+		assert.ErrorIs(t, err, internal_errors.ErrStorageRecordNotFound)
 	})
 
 	t.Run("given one row", func(t *testing.T) {
@@ -102,7 +103,7 @@ func TestPasswordStore_Set(t *testing.T) {
 		defer conn.Close()
 
 		err := store.Set("password")
-		assert.ErrorIs(t, err, errors.StorageErrorNoRecordUpdated)
+		assert.ErrorIs(t, err, internal_errors.ErrStorageNoRecordUpdated)
 	})
 
 	t.Run("given one row", func(t *testing.T) {

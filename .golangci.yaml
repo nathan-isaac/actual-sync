@@ -1,5 +1,7 @@
 run:
   tests: true
+  skip-dirs:
+    - "node_modules"
 
 linters:
   disable-all: true
@@ -18,13 +20,56 @@ linters:
     - testpackage
     - unconvert
     - whitespace
+    - revive
+    - dupl
+    - errorlint
+    - execinquery
+    - gocritic
+    - goerr113
+    - gosec
+    - ifshort
+    - importas
+    - lll
+    - nolintlint
+    - prealloc
 
 linters-settings:
-  errcheck:
-    exclude-functions:
-      - github.com/spf13/viper.BindPFlag
-  gofmt:
-    simplify: true
+  nolintlint:
+    allow-leading-space: false
+    require-explanation: true
+  importas:
+    no-unaliased: true
+    alias:
+      - pkg: github.com/nathanjisaac/actual-server-go/internal/errors
+        alias: internal_errors
+  revive:
+    ignore-generated-header: false
+    severity: warning
+    confidence: 0.8
+    errorCode: 0
+    warningCode: 0
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: duplicated-imports
+      - name: modifies-value-receiver
 
 issues:
   max-issues-per-linter: 0

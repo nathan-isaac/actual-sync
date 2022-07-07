@@ -2,9 +2,10 @@ package sqlite
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/nathanjisaac/actual-server-go/internal/errors"
+	internal_errors "github.com/nathanjisaac/actual-server-go/internal/errors"
 )
 
 type PasswordStore struct {
@@ -27,7 +28,7 @@ func (a *PasswordStore) Count() (int, error) {
 	var count int
 
 	if err = row.Scan(&count); err != nil {
-		return 0, errors.StorageErrorRecordNotFound
+		return 0, internal_errors.ErrStorageRecordNotFound
 	}
 
 	return count, nil
@@ -43,8 +44,8 @@ func (a *PasswordStore) First() (core.Password, error) {
 	}
 
 	if err = row.Scan(&password); err != nil {
-		if err == sql.ErrNoRows {
-			return password, errors.StorageErrorRecordNotFound
+		if errors.Is(err, sql.ErrNoRows) {
+			return password, internal_errors.ErrStorageRecordNotFound
 		}
 		return password, err
 	}
@@ -66,7 +67,7 @@ func (a *PasswordStore) Set(password core.Password) error {
 	if err != nil {
 		return err
 	} else if rows == 0 {
-		return errors.StorageErrorNoRecordUpdated
+		return internal_errors.ErrStorageNoRecordUpdated
 	}
 
 	return nil

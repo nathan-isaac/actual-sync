@@ -1,3 +1,4 @@
+//nolint: dupl // Disabling dupl for tests. It detects similar testcases for different tests.
 package routes_test
 
 import (
@@ -17,7 +18,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func setupAccountTestHandler(body string, pstore core.PasswordStore, tstore core.TokenStore) (*routes.RouteHandler, echo.Context, *httptest.ResponseRecorder) {
+func setupAccountTestHandler(body string, pstore core.PasswordStore, tstore core.TokenStore) (
+	*routes.RouteHandler,
+	echo.Context,
+	*httptest.ResponseRecorder,
+) {
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(body))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
@@ -31,32 +36,29 @@ func setupAccountTestHandler(body string, pstore core.PasswordStore, tstore core
 		PasswordStore: nil,
 		TokenStore:    nil,
 	}
-	if pstore != nil && tstore == nil {
-		h = &routes.RouteHandler{
-			Config: core.Config{
-				Mode: core.Development,
-			},
-			FileStore:     nil,
-			PasswordStore: pstore,
-			TokenStore:    nil,
+	switch pstore {
+	case nil:
+		if tstore != nil {
+			h = &routes.RouteHandler{
+				FileStore:     nil,
+				PasswordStore: nil,
+				TokenStore:    tstore,
+			}
 		}
-	} else if pstore == nil && tstore != nil {
-		h = &routes.RouteHandler{
-			Config: core.Config{
-				Mode: core.Development,
-			},
-			FileStore:     nil,
-			PasswordStore: nil,
-			TokenStore:    tstore,
-		}
-	} else if pstore != nil && tstore != nil {
-		h = &routes.RouteHandler{
-			Config: core.Config{
-				Mode: core.Development,
-			},
-			FileStore:     nil,
-			PasswordStore: pstore,
-			TokenStore:    tstore,
+	default:
+		switch tstore {
+		case nil:
+			h = &routes.RouteHandler{
+				FileStore:     nil,
+				PasswordStore: pstore,
+				TokenStore:    nil,
+			}
+		default:
+			h = &routes.RouteHandler{
+				FileStore:     nil,
+				PasswordStore: pstore,
+				TokenStore:    tstore,
+			}
 		}
 	}
 	return h, c, rec

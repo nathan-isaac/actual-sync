@@ -3,6 +3,7 @@ package sqlite
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 
 	"github.com/nathanjisaac/actual-server-go/internal/core"
 	"github.com/nathanjisaac/actual-server-go/internal/core/crdt"
@@ -54,8 +55,8 @@ func getMerkle(tx *sql.Tx) (*merkle.Merkle, error) {
 	row := stmt.QueryRow()
 
 	var msg core.MerkleMessage
-	if err = row.Scan(&msg.MerkleId, &msg.Merkle); err != nil {
-		if err == sql.ErrNoRows {
+	if err = row.Scan(&msg.MerkleID, &msg.Merkle); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
 			return merkle.NewMerkle(0), nil
 		}
 		return nil, err
@@ -102,7 +103,9 @@ func updateBinaryMerkleStore(tx *sql.Tx, msg *syncpb.MessageEnvelope, trie crdt.
 }
 
 func updateMessagesStore(tx *sql.Tx, trie *merkle.Merkle) error {
-	stmt, err := tx.Prepare("INSERT INTO messages_merkles (id, merkle) VALUES (1, ?) ON CONFLICT (id) DO UPDATE SET merkle = ?")
+	stmt, err := tx.Prepare(
+		"INSERT INTO messages_merkles (id, merkle) VALUES (1, ?) ON CONFLICT (id) DO UPDATE SET merkle = ?",
+	)
 	if err != nil {
 		return err
 	}

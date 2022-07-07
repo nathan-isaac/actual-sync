@@ -3,6 +3,6 @@ package errors
 import "errors"
 
 var (
-	StorageErrorRecordNotFound  = errors.New("record not found")
-	StorageErrorNoRecordUpdated = errors.New("no record updated")
+	ErrStorageRecordNotFound  = errors.New("record not found")
+	ErrStorageNoRecordUpdated = errors.New("no record updated")
 )

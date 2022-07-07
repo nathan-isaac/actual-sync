@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,7 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/nathanjisaac/actual-server-go/internal/errors"
+	internal_errors "github.com/nathanjisaac/actual-server-go/internal/errors"
 	"github.com/nathanjisaac/actual-server-go/internal/routes/syncpb"
 	"google.golang.org/protobuf/proto"
 )
@@ -22,10 +23,10 @@ import (
 // messages. When this changes, all sync files need to be reset. We
 // will check this version when syncing and notify the user if they
 // need to reset.
-const ACTUAL_SYNC_FORMAT_VERSION = 2
+const ActualSyncFormatVersion = 2
 
 type encryptMetaType struct {
-	KeyId string `json:"keyId"`
+	KeyID string `json:"keyId"`
 }
 
 func (it *RouteHandler) SyncFile(c echo.Context) error {
@@ -56,16 +57,16 @@ func (it *RouteHandler) SyncFile(c echo.Context) error {
 		return echo.ErrInternalServerError
 	}
 
-	currentFile, err := it.FileStore.ForId(pbRequest.GetFileId())
+	currentFile, err := it.FileStore.ForID(pbRequest.GetFileId())
 	if err != nil {
-		if err == errors.StorageErrorRecordNotFound {
+		if errors.Is(err, internal_errors.ErrStorageRecordNotFound) {
 			return c.String(http.StatusBadRequest, "file-not-found")
 		}
 		c.Echo().Logger.Error(err)
 		return err
 	}
 
-	if currentFile.SyncVersion == 0 || currentFile.SyncVersion < ACTUAL_SYNC_FORMAT_VERSION {
+	if currentFile.SyncVersion == 0 || currentFile.SyncVersion < ActualSyncFormatVersion {
 		return c.String(http.StatusBadRequest, "file-old-version")
 	}
 
@@ -87,13 +88,13 @@ func (it *RouteHandler) SyncFile(c echo.Context) error {
 			return err
 		}
 	}
-	if metadata.KeyId != currentFile.EncryptKeyId {
+	if metadata.KeyID != currentFile.EncryptKeyID {
 		return c.String(http.StatusBadRequest, "file-key-mismatch")
 	}
 
 	// The changes being synced are part of an old group, which
 	// means the file has been reset. User needs to re-download.
-	if pbRequest.GetGroupId() != currentFile.GroupId {
+	if pbRequest.GetGroupId() != currentFile.GroupID {
 		return c.String(http.StatusBadRequest, "file-has-reset")
 	}
 
@@ -101,14 +102,20 @@ func (it *RouteHandler) SyncFile(c echo.Context) error {
 	// unacceptable. We can't accept these changes. Reject them and
 	// tell the user that they need to generate the correct key
 	// (which necessitates a sync reset so they need to re-download).
-	if pbRequest.GetKeyId() != currentFile.EncryptKeyId {
+	if pbRequest.GetKeyId() != currentFile.EncryptKeyID {
 		return c.String(http.StatusBadRequest, "file-has-new-key")
 	}
 
 	// TODO: Implement unencrypted sync option (sync-full)
 	// Currently, End-to-end encrypted sync is active (sync-simple)
 
-	trie, newMessages, err := encryptedSync(pbRequest.GetSince(), pbRequest.GetMessages(), pbRequest.GetFileId(), it.Config.Storage, it.Config.StorageConfig)
+	trie, newMessages, err := encryptedSync(
+		pbRequest.GetSince(),
+		pbRequest.GetMessages(),
+		pbRequest.GetFileId(),
+		it.Config.Storage,
+		it.Config.StorageConfig,
+	)
 	if err != nil {
 		c.Echo().Logger.Error(err)
 		return err
@@ -127,8 +134,8 @@ func (it *RouteHandler) SyncFile(c echo.Context) error {
 }
 
 type UserCreateKeyRequestBody struct {
-	FileId      string `json:"fileId"`
-	KeyId       string `json:"keyId"`
+	FileID      string `json:"fileId"`
+	KeyID       string `json:"keyId"`
 	KeySalt     string `json:"keySalt"`
 	TestContent string `json:"testContent"`
 	Token       string `json:"token"`
@@ -150,7 +157,7 @@ func (it *RouteHandler) UserCreateKey(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, r)
 	}
 
-	err := it.FileStore.UpdateEncryption(req.FileId, req.KeySalt, req.KeyId, req.TestContent)
+	err := it.FileStore.UpdateEncryption(req.FileID, req.KeySalt, req.KeyID, req.TestContent)
 	if err != nil {
 		c.Echo().Logger.Error(err)
 		return err
@@ -161,7 +168,7 @@ func (it *RouteHandler) UserCreateKey(c echo.Context) error {
 }
 
 type UserGetKeyRequestBody struct {
-	FileId string `json:"fileId"`
+	FileID string `json:"fileId"`
 	Token  string `json:"token"`
 }
 
@@ -171,7 +178,7 @@ type UserGetKeyResponse struct {
 }
 
 type UserGetKeyResponseData struct {
-	EncryptKeyId string `json:"id"`
+	EncryptKeyID string `json:"id"`
 	EncryptSalt  string `json:"salt"`
 	EncryptTest  string `json:"test"`
 }
@@ -192,9 +199,9 @@ func (it *RouteHandler) UserGetKey(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, r)
 	}
 
-	file, err := it.FileStore.ForId(req.FileId)
+	file, err := it.FileStore.ForID(req.FileID)
 	if err != nil {
-		if err == errors.StorageErrorRecordNotFound {
+		if errors.Is(err, internal_errors.ErrStorageRecordNotFound) {
 			return c.String(http.StatusBadRequest, "file-not-found")
 		}
 		c.Echo().Logger.Error(err)
@@ -204,7 +211,7 @@ func (it *RouteHandler) UserGetKey(c echo.Context) error {
 	r := &UserGetKeyResponse{
 		SuccessResponse: SuccessResponse{Status: "ok"},
 		Data: UserGetKeyResponseData{
-			EncryptKeyId: file.EncryptKeyId,
+			EncryptKeyID: file.EncryptKeyID,
 			EncryptSalt:  file.EncryptSalt,
 			EncryptTest:  file.EncryptTest,
 		},
@@ -227,9 +234,9 @@ func (it *RouteHandler) ResetUserFile(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, r)
 	}
 
-	err := it.FileStore.ClearGroup(req.FileId)
+	err := it.FileStore.ClearGroup(req.FileID)
 	if err != nil {
-		if err == errors.StorageErrorNoRecordUpdated {
+		if errors.Is(err, internal_errors.ErrStorageNoRecordUpdated) {
 			return c.String(http.StatusBadRequest, "User or file not found")
 		}
 		c.Echo().Logger.Error(err)
@@ -241,7 +248,7 @@ func (it *RouteHandler) ResetUserFile(c echo.Context) error {
 }
 
 type UpdateUserFileNameRequestBody struct {
-	FileId string `json:"fileId"`
+	FileID string `json:"fileId"`
 	Name   string `json:"name"`
 	Token  string `json:"token"`
 }
@@ -261,9 +268,9 @@ func (it *RouteHandler) UpdateUserFileName(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, r)
 	}
 
-	err := it.FileStore.UpdateName(req.FileId, req.Name)
+	err := it.FileStore.UpdateName(req.FileID, req.Name)
 	if err != nil {
-		if err == errors.StorageErrorNoRecordUpdated {
+		if errors.Is(err, internal_errors.ErrStorageNoRecordUpdated) {
 			return c.String(http.StatusBadRequest, "User or file not found")
 		}
 		c.Echo().Logger.Error(err)
@@ -281,8 +288,8 @@ type UserFileInfoWithMetaResponse struct {
 
 type FileInfoWithMetaResponseData struct {
 	Name        string          `json:"name"`
-	FileId      string          `json:"fileId"`
-	GroupId     string          `json:"groupId"`
+	FileID      string          `json:"fileId"`
+	GroupID     string          `json:"groupId"`
 	EncryptMeta encryptMetaType `json:"encryptMeta"`
 	Deleted     bool            `json:"deleted"`
 }
@@ -294,14 +301,14 @@ type UserFileInfoResponse struct {
 
 type FileInfoResponseData struct {
 	Name    string `json:"name"`
-	FileId  string `json:"fileId"`
-	GroupId string `json:"groupId"`
+	FileID  string `json:"fileId"`
+	GroupID string `json:"groupId"`
 	Deleted bool   `json:"deleted"`
 }
 
 func (it *RouteHandler) UserFileInfo(c echo.Context) error {
 	req := new(UserGetKeyRequestBody)
-	req.FileId = c.Request().Header.Get("x-actual-file-id")
+	req.FileID = c.Request().Header.Get("x-actual-file-id")
 	if err := c.Bind(req); err != nil {
 		c.Echo().Logger.Error(err)
 		return err
@@ -315,9 +322,9 @@ func (it *RouteHandler) UserFileInfo(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, r)
 	}
 
-	file, err := it.FileStore.ForIdAndDelete(req.FileId, false)
+	file, err := it.FileStore.ForIDAndDelete(req.FileID, false)
 	if err != nil {
-		if err == errors.StorageErrorRecordNotFound {
+		if errors.Is(err, internal_errors.ErrStorageRecordNotFound) {
 			return c.JSON(http.StatusBadRequest, ErrorResponse{Status: "error", Reason: "User or file not found"})
 		}
 		c.Echo().Logger.Error(err)
@@ -333,14 +340,24 @@ func (it *RouteHandler) UserFileInfo(c echo.Context) error {
 		}
 		r := UserFileInfoWithMetaResponse{
 			SuccessResponse: SuccessResponse{Status: "ok"},
-			Data:            FileInfoWithMetaResponseData{Name: file.Name, FileId: file.FileId, GroupId: file.GroupId, EncryptMeta: meta, Deleted: file.Deleted},
+			Data: FileInfoWithMetaResponseData{
+				Name:        file.Name,
+				FileID:      file.FileID,
+				GroupID:     file.GroupID,
+				EncryptMeta: meta, Deleted: file.Deleted,
+			},
 		}
 		return c.JSON(http.StatusOK, r)
 	}
 
 	r := UserFileInfoResponse{
 		SuccessResponse: SuccessResponse{Status: "ok"},
-		Data:            FileInfoResponseData{Name: file.Name, FileId: file.FileId, GroupId: file.GroupId, Deleted: file.Deleted},
+		Data: FileInfoResponseData{
+			Name:    file.Name,
+			FileID:  file.FileID,
+			GroupID: file.GroupID,
+			Deleted: file.Deleted,
+		},
 	}
 	return c.JSON(http.StatusOK, r)
 }
@@ -356,9 +373,9 @@ type ListFilesResponse struct {
 
 type FileResponseData struct {
 	Name         string `json:"name"`
-	FileId       string `json:"fileId"`
-	GroupId      string `json:"groupId"`
-	EncryptKeyId string `json:"encryptKeyIid"`
+	FileID       string `json:"fileId"`
+	GroupID      string `json:"groupId"`
+	EncryptKeyID string `json:"encryptKeyIid"`
 	Deleted      bool   `json:"deleted"`
 }
 
@@ -384,7 +401,13 @@ func (it *RouteHandler) ListUserFiles(c echo.Context) error {
 	}
 	filesRes := make([]FileResponseData, 0)
 	for _, file := range files {
-		filesRes = append(filesRes, FileResponseData{Name: file.Name, FileId: file.FileId, GroupId: file.GroupId, EncryptKeyId: file.EncryptKeyId, Deleted: file.Deleted})
+		filesRes = append(filesRes, FileResponseData{
+			Name:         file.Name,
+			FileID:       file.FileID,
+			GroupID:      file.GroupID,
+			EncryptKeyID: file.EncryptKeyID,
+			Deleted:      file.Deleted,
+		})
 	}
 
 	r := &ListFilesResponse{
@@ -396,7 +419,7 @@ func (it *RouteHandler) ListUserFiles(c echo.Context) error {
 
 type UploadUserFileResponse struct {
 	SuccessResponse
-	GroupId string `json:"groupId"`
+	GroupID string `json:"groupId"`
 }
 
 func (it *RouteHandler) UploadUserFile(c echo.Context) error {
@@ -414,15 +437,15 @@ func (it *RouteHandler) UploadUserFile(c echo.Context) error {
 		c.Echo().Logger.Error(err)
 		return err
 	}
-	fileId := c.Request().Header.Get("x-actual-file-id")
-	groupId := c.Request().Header.Get("x-actual-group-id")
+	fileID := c.Request().Header.Get("x-actual-file-id")
+	groupID := c.Request().Header.Get("x-actual-group-id")
 	encryptMeta := c.Request().Header.Get("x-actual-encrypt-meta")
 	syncFormatVersion, err := strconv.ParseInt(c.Request().Header.Get("x-actual-format"), 10, 16)
 	if err != nil {
 		c.Echo().Logger.Error(err)
 		return err
 	}
-	keyId := ""
+	keyID := ""
 	if encryptMeta != "" {
 		var jsonData encryptMetaType
 		err := json.Unmarshal([]byte(encryptMeta), &jsonData)
@@ -430,22 +453,22 @@ func (it *RouteHandler) UploadUserFile(c echo.Context) error {
 			c.Echo().Logger.Error(err)
 			return err
 		}
-		keyId = jsonData.KeyId
+		keyID = jsonData.KeyID
 	}
 
-	file, err := it.FileStore.ForId(fileId)
+	file, err := it.FileStore.ForID(fileID)
 	fileExists := false
-	if err != nil && err != errors.StorageErrorRecordNotFound {
+	if err != nil && !errors.Is(err, internal_errors.ErrStorageRecordNotFound) {
 		c.Echo().Logger.Error(err)
 		return err
 	}
-	if err != errors.StorageErrorRecordNotFound {
+	if !errors.Is(err, internal_errors.ErrStorageRecordNotFound) {
 		fileExists = true
 		// The uploading file is part of an old group, so reject
 		// it. All of its internal sync state is invalid because its
 		// old. The sync state has been reset, so user needs to
 		// either reset again or download from the current group.
-		if groupId != file.GroupId {
+		if groupID != file.GroupID {
 			return c.String(http.StatusBadRequest, "file-has-reset")
 		}
 
@@ -457,12 +480,12 @@ func (it *RouteHandler) UploadUserFile(c echo.Context) error {
 		// be be fine, but since we definitely cannot accept a file
 		// encrypted with the wrong key, we bail and suggest the
 		// user download the latest file.
-		if keyId != file.EncryptKeyId {
+		if keyID != file.EncryptKeyID {
 			return c.String(http.StatusBadRequest, "file-has-new-key")
 		}
 	}
 
-	out, err := it.Config.FileSystem.Create(filepath.Join(it.Config.UserFiles, fmt.Sprintf("%s.blob", fileId)))
+	out, err := it.Config.FileSystem.Create(filepath.Join(it.Config.UserFiles, fmt.Sprintf("%s.blob", fileID)))
 	if err != nil {
 		c.Echo().Logger.Error(err)
 		return err
@@ -481,9 +504,15 @@ func (it *RouteHandler) UploadUserFile(c echo.Context) error {
 			c.Echo().Logger.Error(err)
 			return err
 		}
-		groupId = uuid.String()
+		groupID = uuid.String()
 
-		err = it.FileStore.Add(&core.NewFile{FileId: fileId, GroupId: groupId, SyncVersion: int16(syncFormatVersion), EncryptMeta: encryptMeta, Name: name})
+		err = it.FileStore.Add(&core.NewFile{
+			FileID:      fileID,
+			GroupID:     groupID,
+			SyncVersion: int16(syncFormatVersion),
+			EncryptMeta: encryptMeta,
+			Name:        name,
+		})
 		if err != nil {
 			c.Echo().Logger.Error(err)
 			return err
@@ -491,39 +520,39 @@ func (it *RouteHandler) UploadUserFile(c echo.Context) error {
 
 		r := UploadUserFileResponse{
 			SuccessResponse: SuccessResponse{Status: "ok"},
-			GroupId:         groupId,
-		}
-		return c.JSON(http.StatusOK, r)
-	} else {
-		if groupId == "" {
-			// Sync state was reset. Create new group
-			uuid, err := uuid.NewRandom()
-			if err != nil {
-				c.Echo().Logger.Error(err)
-				return err
-			}
-			groupId = uuid.String()
-
-			err = it.FileStore.UpdateGroup(fileId, groupId)
-			if err != nil {
-				c.Echo().Logger.Error(err)
-				return err
-			}
-		}
-
-		// Regardless, update properties
-		err = it.FileStore.Update(fileId, int16(syncFormatVersion), encryptMeta, name)
-		if err != nil {
-			c.Echo().Logger.Error(err)
-			return err
-		}
-
-		r := UploadUserFileResponse{
-			SuccessResponse: SuccessResponse{Status: "ok"},
-			GroupId:         groupId,
+			GroupID:         groupID,
 		}
 		return c.JSON(http.StatusOK, r)
 	}
+
+	if groupID == "" {
+		// Sync state was reset. Create new group
+		uuid, err := uuid.NewRandom()
+		if err != nil {
+			c.Echo().Logger.Error(err)
+			return err
+		}
+		groupID = uuid.String()
+
+		err = it.FileStore.UpdateGroup(fileID, groupID)
+		if err != nil {
+			c.Echo().Logger.Error(err)
+			return err
+		}
+	}
+
+	// Regardless, update properties
+	err = it.FileStore.Update(fileID, int16(syncFormatVersion), encryptMeta, name)
+	if err != nil {
+		c.Echo().Logger.Error(err)
+		return err
+	}
+
+	r := UploadUserFileResponse{
+		SuccessResponse: SuccessResponse{Status: "ok"},
+		GroupID:         groupID,
+	}
+	return c.JSON(http.StatusOK, r)
 }
 
 func (it *RouteHandler) DownloadUserFile(c echo.Context) error {
@@ -536,11 +565,11 @@ func (it *RouteHandler) DownloadUserFile(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, r)
 	}
 
-	fileId := c.Request().Header.Get("x-actual-file-id")
+	fileID := c.Request().Header.Get("x-actual-file-id")
 
-	_, err := it.FileStore.ForIdAndDelete(fileId, false)
+	_, err := it.FileStore.ForIDAndDelete(fileID, false)
 	if err != nil {
-		if err == errors.StorageErrorRecordNotFound {
+		if errors.Is(err, internal_errors.ErrStorageRecordNotFound) {
 			return c.String(http.StatusBadRequest, "User or file not found")
 		}
 		c.Echo().Logger.Error(err)
@@ -548,7 +577,7 @@ func (it *RouteHandler) DownloadUserFile(c echo.Context) error {
 	}
 
 	fs := it.Config.FileSystem
-	file, err := fs.Open(filepath.Join(it.Config.UserFiles, fmt.Sprintf("%s.blob", fileId)))
+	file, err := fs.Open(filepath.Join(it.Config.UserFiles, fmt.Sprintf("%s.blob", fileID)))
 	if err != nil {
 		c.Echo().Logger.Error(err)
 		return c.String(http.StatusInternalServerError, "Error reading files")
@@ -566,7 +595,7 @@ func (it *RouteHandler) DownloadUserFile(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Error reading files")
 	}
 
-	c.Response().Header().Set(echo.HeaderContentDisposition, fmt.Sprintf("attachment; filename=%q", fileId))
+	c.Response().Header().Set(echo.HeaderContentDisposition, fmt.Sprintf("attachment; filename=%q", fileID))
 	return c.Blob(http.StatusOK, echo.MIMEOctetStream, fileBlob)
 }
 
@@ -585,9 +614,9 @@ func (it *RouteHandler) DeleteUserFile(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, r)
 	}
 
-	err := it.FileStore.Delete(req.FileId)
+	err := it.FileStore.Delete(req.FileID)
 	if err != nil {
-		if err == errors.StorageErrorNoRecordUpdated {
+		if errors.Is(err, internal_errors.ErrStorageNoRecordUpdated) {
 			return c.String(http.StatusBadRequest, "User or file not found")
 		}
 		c.Echo().Logger.Error(err)

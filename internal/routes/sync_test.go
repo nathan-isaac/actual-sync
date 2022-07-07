@@ -1,3 +1,4 @@
+//nolint: dupl // Disabling dupl for tests. It detects similar testcases for different tests.
 package routes_test
 
 import (
@@ -20,7 +21,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupSyncTestHandler(body string, tstore core.TokenStore, fstore core.FileStore) (*routes.RouteHandler, echo.Context, *httptest.ResponseRecorder) {
+func setupSyncTestHandler(body string, tstore core.TokenStore, fstore core.FileStore) (
+	*routes.RouteHandler,
+	echo.Context,
+	*httptest.ResponseRecorder,
+) {
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(body))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
@@ -35,35 +40,45 @@ func setupSyncTestHandler(body string, tstore core.TokenStore, fstore core.FileS
 		PasswordStore: nil,
 		TokenStore:    nil,
 	}
-	if fstore != nil && tstore == nil {
-		h = &routes.RouteHandler{
-			Config:        config,
-			FileStore:     fstore,
-			PasswordStore: nil,
-			TokenStore:    nil,
+	switch fstore {
+	case nil:
+		if tstore != nil {
+			h = &routes.RouteHandler{
+				Config:        config,
+				FileStore:     nil,
+				PasswordStore: nil,
+				TokenStore:    tstore,
+			}
 		}
-	} else if fstore == nil && tstore != nil {
-		h = &routes.RouteHandler{
-			Config:        config,
-			FileStore:     nil,
-			PasswordStore: nil,
-			TokenStore:    tstore,
-		}
-	} else if fstore != nil && tstore != nil {
-		h = &routes.RouteHandler{
-			Config:        config,
-			FileStore:     fstore,
-			PasswordStore: nil,
-			TokenStore:    tstore,
+	default:
+		switch tstore {
+		case nil:
+			h = &routes.RouteHandler{
+				Config:        config,
+				FileStore:     fstore,
+				PasswordStore: nil,
+				TokenStore:    nil,
+			}
+		default:
+			h = &routes.RouteHandler{
+				Config:        config,
+				FileStore:     fstore,
+				PasswordStore: nil,
+				TokenStore:    tstore,
+			}
 		}
 	}
 	return h, c, rec
 }
 
-func setupSyncTestFileHandler(body []byte, tstore core.TokenStore, fstore core.FileStore, fileId string) (*routes.RouteHandler, echo.Context, *httptest.ResponseRecorder) {
+func setupSyncTestFileHandler(body []byte, tstore core.TokenStore, fstore core.FileStore, fileID string) (
+	*routes.RouteHandler,
+	echo.Context,
+	*httptest.ResponseRecorder,
+) {
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/", bytes.NewReader(body))
-	req.Header.Set(echo.HeaderContentDisposition, fmt.Sprintf("attachment;filename=%s", fileId))
+	req.Header.Set(echo.HeaderContentDisposition, fmt.Sprintf("attachment;filename=%s", fileID))
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	fs := afero.NewMemMapFs()
@@ -78,26 +93,32 @@ func setupSyncTestFileHandler(body []byte, tstore core.TokenStore, fstore core.F
 		PasswordStore: nil,
 		TokenStore:    nil,
 	}
-	if fstore != nil && tstore == nil {
-		h = &routes.RouteHandler{
-			Config:        config,
-			FileStore:     fstore,
-			PasswordStore: nil,
-			TokenStore:    nil,
+	switch fstore {
+	case nil:
+		if tstore != nil {
+			h = &routes.RouteHandler{
+				Config:        config,
+				FileStore:     nil,
+				PasswordStore: nil,
+				TokenStore:    tstore,
+			}
 		}
-	} else if fstore == nil && tstore != nil {
-		h = &routes.RouteHandler{
-			Config:        config,
-			FileStore:     nil,
-			PasswordStore: nil,
-			TokenStore:    tstore,
-		}
-	} else if fstore != nil && tstore != nil {
-		h = &routes.RouteHandler{
-			Config:        config,
-			FileStore:     fstore,
-			PasswordStore: nil,
-			TokenStore:    tstore,
+	default:
+		switch tstore {
+		case nil:
+			h = &routes.RouteHandler{
+				Config:        config,
+				FileStore:     fstore,
+				PasswordStore: nil,
+				TokenStore:    nil,
+			}
+		default:
+			h = &routes.RouteHandler{
+				Config:        config,
+				FileStore:     fstore,
+				PasswordStore: nil,
+				TokenStore:    tstore,
+			}
 		}
 	}
 	return h, c, rec
@@ -147,11 +168,15 @@ func TestUserCreateKey(t *testing.T) {
 		defer db.Close()
 		tstore := sqlite.NewTokenStore(db)
 		fstore := sqlite.NewFileStore(db)
-		h, c, rec := setupSyncTestHandler(`{"token":"token123","fileId":"f1","keyId":"2","keySalt":"3","testContent":"4"}`, tstore, fstore)
+		h, c, rec := setupSyncTestHandler(
+			`{"token":"token123","fileId":"f1","keyId":"2","keySalt":"3","testContent":"4"}`,
+			tstore,
+			fstore,
+		)
 
 		err = tstore.Add("token123")
 		assert.NoError(t, err)
-		err = fstore.Add(&core.NewFile{FileId: "f1", GroupId: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
+		err = fstore.Add(&core.NewFile{FileID: "f1", GroupID: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
 		assert.NoError(t, err)
 
 		var res routes.SuccessResponse
@@ -162,9 +187,9 @@ func TestUserCreateKey(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
 		assert.Equal(t, "ok", res.Status)
 
-		file, err := fstore.ForId("f1")
+		file, err := fstore.ForID("f1")
 		assert.NoError(t, err)
-		assert.Equal(t, "2", file.EncryptKeyId)
+		assert.Equal(t, "2", file.EncryptKeyID)
 		assert.Equal(t, "3", file.EncryptSalt)
 		assert.Equal(t, "4", file.EncryptTest)
 	})
@@ -215,11 +240,15 @@ func TestUserGetKey(t *testing.T) {
 		defer db.Close()
 		tstore := sqlite.NewTokenStore(db)
 		fstore := sqlite.NewFileStore(db)
-		h, c, rec := setupSyncTestHandler(`{"token":"token123","fileId":"f1","keyId":"2","keySalt":"3","testContent":"4"}`, tstore, fstore)
+		h, c, rec := setupSyncTestHandler(
+			`{"token":"token123","fileId":"f1","keyId":"2","keySalt":"3","testContent":"4"}`,
+			tstore,
+			fstore,
+		)
 
 		err = tstore.Add("token123")
 		assert.NoError(t, err)
-		err = fstore.Add(&core.NewFile{FileId: "f1", GroupId: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
+		err = fstore.Add(&core.NewFile{FileID: "f1", GroupID: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
 		assert.NoError(t, err)
 		err = fstore.UpdateEncryption("f1", "salt", "keyid", "test")
 		assert.NoError(t, err)
@@ -231,7 +260,7 @@ func TestUserGetKey(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
 		assert.Equal(t, "ok", res.Status)
-		assert.Equal(t, "keyid", res.Data.EncryptKeyId)
+		assert.Equal(t, "keyid", res.Data.EncryptKeyID)
 		assert.Equal(t, "salt", res.Data.EncryptSalt)
 		assert.Equal(t, "test", res.Data.EncryptTest)
 	})
@@ -286,7 +315,7 @@ func TestResetUserFile(t *testing.T) {
 
 		err = tstore.Add("token123")
 		assert.NoError(t, err)
-		err = fstore.Add(&core.NewFile{FileId: "f1", GroupId: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
+		err = fstore.Add(&core.NewFile{FileID: "f1", GroupID: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
 		assert.NoError(t, err)
 		err = fstore.UpdateEncryption("f1", "salt", "keyid", "test")
 		assert.NoError(t, err)
@@ -299,9 +328,9 @@ func TestResetUserFile(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
 		assert.Equal(t, "ok", res.Status)
 
-		file, err := fstore.ForId("f1")
+		file, err := fstore.ForID("f1")
 		assert.NoError(t, err)
-		assert.Equal(t, "", file.GroupId)
+		assert.Equal(t, "", file.GroupID)
 	})
 }
 
@@ -354,7 +383,7 @@ func TestUpdateUserFileName(t *testing.T) {
 
 		err = tstore.Add("token123")
 		assert.NoError(t, err)
-		err = fstore.Add(&core.NewFile{FileId: "f1", GroupId: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
+		err = fstore.Add(&core.NewFile{FileID: "f1", GroupID: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
 		assert.NoError(t, err)
 		err = fstore.UpdateEncryption("f1", "salt", "keyid", "test")
 		assert.NoError(t, err)
@@ -367,7 +396,7 @@ func TestUpdateUserFileName(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
 		assert.Equal(t, "ok", res.Status)
 
-		file, err := fstore.ForId("f1")
+		file, err := fstore.ForID("f1")
 		assert.NoError(t, err)
 		assert.Equal(t, "budgetnew", file.Name)
 	})
@@ -429,7 +458,7 @@ func TestUserFileInfo(t *testing.T) {
 		assert.NoError(t, err)
 		c.Request().Header.Set("x-actual-file-id", "f1")
 
-		err = fstore.Add(&core.NewFile{FileId: "f1", GroupId: "g1", SyncVersion: 2, EncryptMeta: "", Name: "budget"})
+		err = fstore.Add(&core.NewFile{FileID: "f1", GroupID: "g1", SyncVersion: 2, EncryptMeta: "", Name: "budget"})
 		assert.NoError(t, err)
 		err = fstore.UpdateEncryption("f1", "salt", "keyid", "test")
 		assert.NoError(t, err)
@@ -442,8 +471,8 @@ func TestUserFileInfo(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
 		assert.Equal(t, "ok", res.Status)
 
-		assert.Equal(t, "f1", res.Data.FileId)
-		assert.Equal(t, "g1", res.Data.GroupId)
+		assert.Equal(t, "f1", res.Data.FileID)
+		assert.Equal(t, "g1", res.Data.GroupID)
 		assert.Equal(t, "budget", res.Data.Name)
 		assert.Equal(t, false, res.Data.Deleted)
 	})
@@ -460,7 +489,13 @@ func TestUserFileInfo(t *testing.T) {
 		assert.NoError(t, err)
 		c.Request().Header.Set("x-actual-file-id", "f1")
 
-		err = fstore.Add(&core.NewFile{FileId: "f1", GroupId: "g1", SyncVersion: 2, EncryptMeta: `{"keyId":"keyidMeta"}`, Name: "budget"})
+		err = fstore.Add(&core.NewFile{
+			FileID:      "f1",
+			GroupID:     "g1",
+			SyncVersion: 2,
+			EncryptMeta: `{"keyId":"keyidMeta"}`,
+			Name:        "budget",
+		})
 		assert.NoError(t, err)
 		err = fstore.UpdateEncryption("f1", "salt", "keyid", "test")
 		assert.NoError(t, err)
@@ -473,9 +508,9 @@ func TestUserFileInfo(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
 		assert.Equal(t, "ok", res.Status)
 
-		assert.Equal(t, "f1", res.Data.FileId)
-		assert.Equal(t, "g1", res.Data.GroupId)
-		assert.Equal(t, "keyidMeta", res.Data.EncryptMeta.KeyId)
+		assert.Equal(t, "f1", res.Data.FileID)
+		assert.Equal(t, "g1", res.Data.GroupID)
+		assert.Equal(t, "keyidMeta", res.Data.EncryptMeta.KeyID)
 		assert.Equal(t, "budget", res.Data.Name)
 		assert.Equal(t, false, res.Data.Deleted)
 	})
@@ -535,12 +570,12 @@ func TestListUserFiles(t *testing.T) {
 		err = tstore.Add("token123")
 		assert.NoError(t, err)
 
-		err = fstore.Add(&core.NewFile{FileId: "f1", GroupId: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
+		err = fstore.Add(&core.NewFile{FileID: "f1", GroupID: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
 		assert.NoError(t, err)
 		err = fstore.UpdateEncryption("f1", "salt", "keyid", "test")
 		assert.NoError(t, err)
 
-		err = fstore.Add(&core.NewFile{FileId: "f2", GroupId: "g2", SyncVersion: 2, EncryptMeta: "abc2", Name: "budget2"})
+		err = fstore.Add(&core.NewFile{FileID: "f2", GroupID: "g2", SyncVersion: 2, EncryptMeta: "abc2", Name: "budget2"})
 		assert.NoError(t, err)
 		err = fstore.UpdateEncryption("f2", "salt2", "keyid2", "test2")
 		assert.NoError(t, err)
@@ -554,15 +589,15 @@ func TestListUserFiles(t *testing.T) {
 		assert.Equal(t, "ok", res.Status)
 		assert.Equal(t, 2, len(res.Data))
 
-		assert.Equal(t, "f1", res.Data[0].FileId)
-		assert.Equal(t, "g1", res.Data[0].GroupId)
-		assert.Equal(t, "keyid", res.Data[0].EncryptKeyId)
+		assert.Equal(t, "f1", res.Data[0].FileID)
+		assert.Equal(t, "g1", res.Data[0].GroupID)
+		assert.Equal(t, "keyid", res.Data[0].EncryptKeyID)
 		assert.Equal(t, "budget", res.Data[0].Name)
 		assert.Equal(t, false, res.Data[0].Deleted)
 
-		assert.Equal(t, "f2", res.Data[1].FileId)
-		assert.Equal(t, "g2", res.Data[1].GroupId)
-		assert.Equal(t, "keyid2", res.Data[1].EncryptKeyId)
+		assert.Equal(t, "f2", res.Data[1].FileID)
+		assert.Equal(t, "g2", res.Data[1].GroupID)
+		assert.Equal(t, "keyid2", res.Data[1].EncryptKeyID)
 		assert.Equal(t, "budget2", res.Data[1].Name)
 		assert.Equal(t, false, res.Data[1].Deleted)
 	})
@@ -614,7 +649,7 @@ func TestUploadUserFIle(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
 		assert.Equal(t, "ok", res.Status)
-		_, err = uuid.Parse(res.GroupId)
+		_, err = uuid.Parse(res.GroupID)
 		assert.NoError(t, err)
 
 		count, err := fstore.Count()
@@ -643,7 +678,7 @@ func TestUploadUserFIle(t *testing.T) {
 		c.Request().Header.Set("x-actual-group-id", "g2")
 		c.Request().Header.Set("x-actual-encrypt-meta", `{"keyId": "keyid"}`)
 		c.Request().Header.Set("x-actual-format", "2")
-		err = fstore.Add(&core.NewFile{FileId: "f1", GroupId: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
+		err = fstore.Add(&core.NewFile{FileID: "f1", GroupID: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
 		assert.NoError(t, err)
 		err = fstore.UpdateEncryption("f1", "salt", "keyid", "test")
 		assert.NoError(t, err)
@@ -671,7 +706,7 @@ func TestUploadUserFIle(t *testing.T) {
 		c.Request().Header.Set("x-actual-group-id", "g1")
 		c.Request().Header.Set("x-actual-encrypt-meta", `{"keyId": "keyid"}`)
 		c.Request().Header.Set("x-actual-format", "2")
-		err = fstore.Add(&core.NewFile{FileId: "f1", GroupId: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
+		err = fstore.Add(&core.NewFile{FileID: "f1", GroupID: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
 		assert.NoError(t, err)
 		err = fstore.UpdateEncryption("f1", "salt", "keyid2", "test")
 		assert.NoError(t, err)
@@ -699,7 +734,7 @@ func TestUploadUserFIle(t *testing.T) {
 		c.Request().Header.Set("x-actual-group-id", "g1")
 		c.Request().Header.Set("x-actual-encrypt-meta", `{"keyId": "keyid"}`)
 		c.Request().Header.Set("x-actual-format", "3")
-		err = fstore.Add(&core.NewFile{FileId: "f1", GroupId: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
+		err = fstore.Add(&core.NewFile{FileID: "f1", GroupID: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
 		assert.NoError(t, err)
 		err = fstore.UpdateEncryption("f1", "salt", "keyid", "test")
 		assert.NoError(t, err)
@@ -711,9 +746,9 @@ func TestUploadUserFIle(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
 		assert.Equal(t, "ok", res.Status)
-		assert.Equal(t, "g1", res.GroupId)
+		assert.Equal(t, "g1", res.GroupID)
 
-		file, err := fstore.ForId("f1")
+		file, err := fstore.ForID("f1")
 		assert.NoError(t, err)
 		assert.Equal(t, int16(3), file.SyncVersion)
 		assert.Equal(t, "budgetnew", file.Name)
@@ -779,7 +814,7 @@ func TestDownloadUserFIle(t *testing.T) {
 		assert.NoError(t, err)
 		c.Request().Header.Set("x-actual-token", "token123")
 		c.Request().Header.Set("x-actual-file-id", "f1")
-		err = fstore.Add(&core.NewFile{FileId: "f1", GroupId: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
+		err = fstore.Add(&core.NewFile{FileID: "f1", GroupID: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
 		assert.NoError(t, err)
 		err = fstore.UpdateEncryption("f1", "salt", "keyid", "test")
 		assert.NoError(t, err)
@@ -847,7 +882,7 @@ func TestDeleteUserFile(t *testing.T) {
 
 		err = tstore.Add("token123")
 		assert.NoError(t, err)
-		err = fstore.Add(&core.NewFile{FileId: "f1", GroupId: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
+		err = fstore.Add(&core.NewFile{FileID: "f1", GroupID: "g1", SyncVersion: 2, EncryptMeta: "abc", Name: "budget"})
 		assert.NoError(t, err)
 		err = fstore.UpdateEncryption("f1", "salt", "keyid", "test")
 		assert.NoError(t, err)
@@ -860,7 +895,7 @@ func TestDeleteUserFile(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
 		assert.Equal(t, "ok", res.Status)
 
-		file, err := fstore.ForId("f1")
+		file, err := fstore.ForID("f1")
 		assert.NoError(t, err)
 		assert.Equal(t, true, file.Deleted)
 	})
