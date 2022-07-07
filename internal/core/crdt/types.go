@@ -1,9 +1,9 @@
 package crdt
 
 type Merkle interface {
-	GetKeys(Merkle) []string
-	Insert(Timestamp) *Merkle
-	Prune(Timestamp) *Merkle
+	ToJSONString() (string, error)
+	Insert(Timestamp)
+	Prune() Merkle
 }
 
 type Timestamp interface {

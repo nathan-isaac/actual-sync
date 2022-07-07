@@ -2,7 +2,7 @@ package memory
 
 import (
 	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/nathanjisaac/actual-server-go/internal/storage"
+	"github.com/nathanjisaac/actual-server-go/internal/errors"
 )
 
 type PasswordStore struct {
@@ -21,7 +21,7 @@ func (it *PasswordStore) Count() (int, error) {
 
 func (it *PasswordStore) First() (core.Password, error) {
 	if len(it.Passwords) == 0 {
-		return "", storage.ErrorRecordNotFound
+		return "", errors.StorageErrorRecordNotFound
 	}
 	return it.Passwords[len(it.Passwords)-1], nil
 }

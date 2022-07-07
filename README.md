@@ -43,18 +43,23 @@ actual-sync serve [flags]
 #### Options
 
 ```text
-  -d, --data-path string   Sets data directory path (default "data")
-  -l, --headless           Runs actual-sync without the web app
+  -d, --data-path string   Sets configuration & data directory path. 
+                           Creates 'actual-sync' folder here, if it 
+                           doesn't exist (default "$HOME")
+      --debug              Runs actual-sync in development mode
+      --headless           Runs actual-sync without the web app
   -h, --help               help for serve
+  -l, --logs               Displays server logs
   -p, --port int           Runs actual-sync at specified port (default 5006)
-      --production         Runs actual-sync in production mode
 ```
 
 #### Global options
 
 ```text
-      --config string   config file (default is $HOME/.actual-sync.yaml)
+      --config string   config file (default is /actual-sync/config.yaml relative to data-path)
 ```
+
+Check out an example configuration [here](config.example.yaml).
 
 ## Development
 
@@ -80,7 +85,7 @@ $ npm install
 2. Run go program
 
 ```shell
-$ go run main.go serve
+$ go run main.go serve --debug
 ```
 
 **NOTE: Run `golangci-lint run` after changes(if any) to ensure code quality.**

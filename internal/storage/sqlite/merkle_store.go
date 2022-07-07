@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/nathanjisaac/actual-server-go/internal/storage"
+	"github.com/nathanjisaac/actual-server-go/internal/errors"
 )
 
 type MerkleStore struct {
@@ -34,7 +34,7 @@ func (ms *MerkleStore) GetForGroup(groupId string) (*core.MerkleMessage, error) 
 	var msg core.MerkleMessage
 	if err = row.Scan(&msg.MerkleId, &msg.Merkle); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, storage.ErrorRecordNotFound
+			return nil, errors.StorageErrorRecordNotFound
 		}
 		return nil, err
 	}

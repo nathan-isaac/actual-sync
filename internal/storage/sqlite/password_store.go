@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/nathanjisaac/actual-server-go/internal/storage"
+	"github.com/nathanjisaac/actual-server-go/internal/errors"
 )
 
 type PasswordStore struct {
@@ -27,7 +27,7 @@ func (a *PasswordStore) Count() (int, error) {
 	var count int
 
 	if err = row.Scan(&count); err != nil {
-		return 0, storage.ErrorRecordNotFound
+		return 0, errors.StorageErrorRecordNotFound
 	}
 
 	return count, nil
@@ -44,7 +44,7 @@ func (a *PasswordStore) First() (core.Password, error) {
 
 	if err = row.Scan(&password); err != nil {
 		if err == sql.ErrNoRows {
-			return password, storage.ErrorRecordNotFound
+			return password, errors.StorageErrorRecordNotFound
 		}
 		return password, err
 	}
@@ -66,7 +66,7 @@ func (a *PasswordStore) Set(password core.Password) error {
 	if err != nil {
 		return err
 	} else if rows == 0 {
-		return storage.ErrorNoRecordUpdated
+		return errors.StorageErrorNoRecordUpdated
 	}
 
 	return nil

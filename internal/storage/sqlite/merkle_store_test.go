@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/nathanjisaac/actual-server-go/internal/core"
-	"github.com/nathanjisaac/actual-server-go/internal/storage"
+	"github.com/nathanjisaac/actual-server-go/internal/errors"
 	"github.com/nathanjisaac/actual-server-go/internal/storage/sqlite"
 	"github.com/stretchr/testify/assert"
 )
@@ -50,7 +50,7 @@ func TestMerkleStore_GetForGroup(t *testing.T) {
 
 		_, err := store.GetForGroup("1")
 
-		assert.ErrorIs(t, err, storage.ErrorRecordNotFound)
+		assert.ErrorIs(t, err, errors.StorageErrorRecordNotFound)
 	})
 
 	t.Run("given two rows and return one", func(t *testing.T) {

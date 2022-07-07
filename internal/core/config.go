@@ -10,12 +10,13 @@ const (
 )
 
 type Config struct {
-	Mode        Mode
-	Port        int
-	Hostname    string
-	ServerFiles string
-	UserFiles   string
-	FileSystem  afero.Fs
+	Mode          Mode
+	Port          int
+	Hostname      string
+	Storage       StorageType
+	StorageConfig StorageConfig
+	UserFiles     string
+	FileSystem    afero.Fs
 }
 
 func (it Config) ModeString() string {
