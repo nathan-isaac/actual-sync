@@ -27,6 +27,7 @@ func StartServer(config core.Config, buildDirectory embed.FS, headless bool, log
 
 	e.Use(middleware.CORS())
 	e.Use(setHeaders)
+
 	if logs {
 		e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 			Format: "method=${method}, uri=${uri}, status=${status}\n",

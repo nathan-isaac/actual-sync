@@ -28,6 +28,7 @@ specified configurations along with this command.`,
 		port := viper.GetInt("port")
 		storageType := viper.GetString("storage")
 		dataPath := viper.GetString("data-path")
+
 		dataPath = filepath.Join(dataPath, "actual-sync")
 
 		if !filepath.IsAbs(dataPath) {
@@ -52,7 +53,9 @@ specified configurations along with this command.`,
 			ServerDataPath: viper.GetString("sqlite.server-files"),
 			UserDataPath:   viper.GetString("sqlite.user-files"),
 		}
+
 		storageConfig := storage.GenerateStorageConfig(storageType, options)
+
 		config := core.Config{
 			Mode:          mode,
 			Port:          port,
